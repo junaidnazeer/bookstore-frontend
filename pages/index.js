@@ -1,22 +1,44 @@
 import Navbar from "../components/Navbar";
 import Link from "next/link";
 
+const CATEGORIES = [
+  { value: "books", label: "Books" },
+  { value: "attars", label: "Attars" },
+  { value: "caps", label: "Caps" },
+  { value: "shalwar-kameez", label: "Shalwar Kameez" },
+  { value: "abayas", label: "Abayas" },
+  { value: "jilbabs", label: "Jilbabs" },
+];
+
 export default function Home() {
   return (
     <div>
       <Navbar />
       <main className="max-w-4xl mx-auto px-6 py-16 text-center">
-        <h1 className="text-3xl font-semibold text-neutral-900">
-          Find your next book
+        <h1 className="font-serif text-3xl text-ink">
+          Quality Islamic essentials, delivered to your door
         </h1>
         <p className="mt-3 text-neutral-500">
-          Browse our collection and get books delivered across India.
+          Books, attars, and modest clothing — across India.
         </p>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-10">
+          {CATEGORIES.map((c) => (
+            <Link
+              key={c.value}
+              href={`/products?category=${c.value}`}
+              className="border-l-4 border-spine bg-white p-6 rounded shadow-sm hover:shadow-md transition-shadow text-ink font-medium"
+            >
+              {c.label}
+            </Link>
+          ))}
+        </div>
+
         <Link
-          href="/books"
-          className="inline-block mt-6 px-5 py-2 bg-neutral-900 text-white rounded"
+          href="/products"
+          className="inline-block mt-10 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity"
         >
-          Browse books
+          Browse all products
         </Link>
       </main>
     </div>

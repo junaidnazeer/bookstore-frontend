@@ -7,7 +7,7 @@ export default function Navbar() {
         Bookstore
       </Link>
       <div className="flex gap-6 text-sm text-neutral-600">
-        <Link href="/books">Browse</Link>
+        <Link href="/products">Browse</Link>
         <Link href="/cart">Cart</Link>
         <Link href="/login">Login</Link>
       </div>
