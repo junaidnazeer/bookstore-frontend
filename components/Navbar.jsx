@@ -10,7 +10,7 @@ export default function Navbar() {
         Bookstore
       </Link>
       <div className="flex gap-6 text-sm text-ink items-center">
-        <Link href="/books">Browse</Link>
+        <Link href="/products">Browse</Link>
         <Link href="/cart" className="relative">
           Cart
           {count > 0 && (
