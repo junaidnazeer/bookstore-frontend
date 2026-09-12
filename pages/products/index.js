@@ -3,15 +3,13 @@ import { useRouter } from "next/router";
 import Navbar from "../../components/Navbar";
 import ProductCard from "../../components/ProductCard";
 import api from "../../lib/api";
+import { normalizeProduct } from "../../lib/normalizeProduct";
 
 const CATEGORIES = [
   { value: "", label: "All" },
   { value: "books", label: "Books" },
   { value: "attars", label: "Attars" },
-  { value: "caps", label: "Caps" },
-  { value: "shalwar-kameez", label: "Shalwar Kameez" },
-  { value: "abayas", label: "Abayas" },
-  { value: "jilbabs", label: "Jilbabs" },
+  { value: "clothing", label: "Clothing" },
 ];
 
 export default function Products() {
@@ -30,7 +28,7 @@ export default function Products() {
     const query = category ? `?category=${category}` : "";
     api
       .get(`/products${query}`)
-      .then((res) => setProducts(res.data))
+      .then((res) => setProducts(res.data.map(normalizeProduct)))
       .catch(() => setError("Could not load products. Is the backend running?"))
       .finally(() => setLoading(false));
   }, [category]);
