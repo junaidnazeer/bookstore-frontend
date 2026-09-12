@@ -4,6 +4,18 @@ import Navbar from "../../components/Navbar";
 import api from "../../lib/api";
 import { useCart } from "../../lib/cart-context";
 
+// Attribute keys worth showing as plain text (not pickers) per category.
+// Anything in product.attributes not listed here still won't break —
+// it just won't render, so unexpected fields fail safely.
+const DISPLAY_ATTRIBUTES = {
+  books: ["author", "language"],
+  attars: ["volume", "scent"],
+  "shalwar-kameez": ["fabric"],
+  abayas: ["fabric"],
+  jilbabs: ["fabric"],
+  caps: ["fabric"],
+};
+
 export default function ProductDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -42,6 +54,9 @@ export default function ProductDetail() {
     (product.sizes && product.sizes.length > 0) ||
     (product.colors && product.colors.length > 0);
 
+  const attributeKeys = DISPLAY_ATTRIBUTES[product.category] || [];
+  const attributes = product.attributes || {};
+
   return (
     <div>
       <Navbar />
@@ -60,8 +75,12 @@ export default function ProductDetail() {
         <div>
           <h1 className="font-serif text-2xl text-ink">{product.name}</h1>
 
-          {product.category === "books" && product.author && (
-            <p className="text-neutral-500 mt-1">{product.author}</p>
+          {attributeKeys.map((key) =>
+            attributes[key] ? (
+              <p key={key} className="text-neutral-500 mt-1 text-sm">
+                <span className="capitalize">{key}</span>: {attributes[key]}
+              </p>
+            ) : null,
           )}
 
           <p className="text-xl font-semibold mt-4 text-brass">
