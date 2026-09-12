@@ -4,10 +4,7 @@ import Link from "next/link";
 const CATEGORIES = [
   { value: "books", label: "Books" },
   { value: "attars", label: "Attars" },
-  { value: "caps", label: "Caps" },
-  { value: "shalwar-kameez", label: "Shalwar Kameez" },
-  { value: "abayas", label: "Abayas" },
-  { value: "jilbabs", label: "Jilbabs" },
+  { value: "clothing", label: "Clothing" },
 ];
 
 export default function Home() {
@@ -22,7 +19,7 @@ export default function Home() {
           Books, attars, and modest clothing — across India.
         </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10">
           {CATEGORIES.map((c) => (
             <Link
               key={c.value}
