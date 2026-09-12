@@ -1,8 +1,10 @@
 import Navbar from "../components/Navbar";
+import { useRouter } from "next/router";
 import { useCart } from "../lib/cart-context";
 import Link from "next/link";
 
 export default function Cart() {
+  const router = useRouter();
   const { items, removeItem, updateQuantity, total } = useCart();
 
   if (items.length === 0) {
@@ -14,13 +16,13 @@ export default function Cart() {
             Your cart is empty
           </h1>
           <p className="text-neutral-500 mb-6">
-            Looks like you haven't added any books yet.
+            Looks like you haven't added anything yet.
           </p>
           <Link
-            href="/books"
+            href="/products"
             className="inline-block px-5 py-2 bg-spine text-white rounded"
           >
-            Browse books
+            Browse products
           </Link>
         </main>
       </div>
@@ -36,23 +38,27 @@ export default function Cart() {
         <div className="flex flex-col gap-4">
           {items.map((item) => (
             <div
-              key={item.id}
+              key={`${item.id}-${item.size || ""}-${item.color || ""}`}
               className="flex items-center gap-4 border-l-4 border-spine bg-white p-4 rounded shadow-sm"
             >
               <div className="w-16 h-24 bg-neutral-100 rounded overflow-hidden flex-shrink-0">
-                {item.coverUrl && (
+                {item.image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={item.coverUrl}
-                    alt={item.title}
+                    src={item.image}
+                    alt={item.name}
                     className="w-full h-full object-cover"
                   />
                 )}
               </div>
 
               <div className="flex-1">
-                <h3 className="font-medium text-ink">{item.title}</h3>
-                <p className="text-sm text-neutral-500">{item.author}</p>
+                <h3 className="font-medium text-ink">{item.name}</h3>
+                {(item.size || item.color) && (
+                  <p className="text-sm text-neutral-500">
+                    {[item.size, item.color].filter(Boolean).join(" · ")}
+                  </p>
+                )}
                 <p className="text-brass font-semibold mt-1">₹{item.price}</p>
               </div>
 
@@ -87,7 +93,10 @@ export default function Cart() {
           <span className="font-serif text-xl text-brass">₹{total}</span>
         </div>
 
-        <button className="mt-6 w-full py-3 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity">
+        <button
+          onClick={() => router.push("/checkout")}
+          className="mt-6 w-full py-3 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity"
+        >
           Proceed to checkout
         </button>
       </main>
