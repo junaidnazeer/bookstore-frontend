@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import Navbar from "../components/Navbar";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import AuthLayout from "../components/AuthLayout";
 import api from "../lib/api";
-import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
@@ -28,86 +28,93 @@ export default function Login() {
   }
 
   function handleGoogleLogin() {
-    // TEMPORARY: placeholder until Google OAuth is set up with Murtaza's backend.
     setError("Google login isn't set up yet.");
   }
 
   return (
-    <div>
-      <Navbar />
-      <main className="max-w-sm mx-auto px-6 py-10">
-        <h1 className="font-serif text-2xl text-ink mb-1 text-center">Login</h1>
-        <p className="text-sm text-neutral-500 mb-6 text-center">
-          Login to your account
-        </p>
+    <AuthLayout>
+      <h1 className="font-serif text-2xl text-ink text-center mb-1">Login</h1>
+      <p className="text-sm text-neutral-500 text-center mb-6">
+        Login to your account
+      </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="border border-neutral-300 rounded px-3 py-2"
-            required
-          />
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div>
+          <label className="text-sm text-neutral-600 mb-1 block">Email</label>
+          <div className="flex items-center border border-neutral-300 rounded px-3">
+            <Mail size={16} className="text-neutral-400 flex-shrink-0" />
+            <input
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1 px-2 py-2 outline-none text-sm"
+              required
+            />
+          </div>
+        </div>
 
-          <div className="relative">
+        <div>
+          <label className="text-sm text-neutral-600 mb-1 block">
+            Password
+          </label>
+          <div className="flex items-center border border-neutral-300 rounded px-3">
+            <Lock size={16} className="text-neutral-400 flex-shrink-0" />
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border border-neutral-300 rounded px-3 py-2 w-full pr-10"
+              className="flex-1 px-2 py-2 outline-none text-sm"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-ink transition-colors"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="text-neutral-400 hover:text-ink flex-shrink-0"
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-
-          <a
-            href="/forgot-password"
-            className="text-sm text-spine text-right -mt-1"
-          >
-            Forgot Password?
-          </a>
-
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-1 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-neutral-200" />
-          <span className="text-xs text-neutral-400">OR</span>
-          <div className="flex-1 h-px bg-neutral-200" />
         </div>
 
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full px-5 py-2 border border-neutral-300 rounded text-ink hover:bg-neutral-50 transition-colors"
+        <a
+          href="/forgot-password"
+          className="text-sm text-spine text-right -mt-2"
         >
-          Continue with Google
-        </button>
+          Forgot Password?
+        </a>
 
-        <p className="mt-6 text-sm text-neutral-500 text-center">
-          Don't have an account?{" "}
-          <a href="/signup" className="text-spine underline">
-            Sign Up
-          </a>
-        </p>
-      </main>
-    </div>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          {loading ? "Logging in..." : "Login"}
+        </button>
+      </form>
+
+      <div className="flex items-center gap-3 my-5">
+        <div className="flex-1 h-px bg-neutral-200" />
+        <span className="text-xs text-neutral-400">OR</span>
+        <div className="flex-1 h-px bg-neutral-200" />
+      </div>
+
+      <button
+        onClick={handleGoogleLogin}
+        className="w-full px-5 py-2.5 border border-neutral-300 rounded text-ink hover:bg-neutral-50 transition-colors text-sm"
+      >
+        Continue with Google
+      </button>
+
+      <p className="mt-6 text-sm text-neutral-500 text-center">
+        Don't have an account?{" "}
+        <a href="/signup" className="text-spine underline">
+          Sign Up
+        </a>
+      </p>
+    </AuthLayout>
   );
 }

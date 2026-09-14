@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
-import Navbar from "../components/Navbar";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Phone, Lock } from "lucide-react";
+import AuthLayout from "../components/AuthLayout";
 import api from "../lib/api";
 
 const RESEND_SECONDS = 30;
@@ -107,9 +107,7 @@ export default function Signup() {
   function handleCreateAccount(e) {
     e.preventDefault();
     setError(null);
-    if (!isPasswordValid(password)) {
-      return;
-    }
+    if (!isPasswordValid(password)) return;
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -148,240 +146,294 @@ export default function Signup() {
     setStep(4);
   }
 
+  function handleGoogleSignup() {
+    setError("Google signup isn't set up yet.");
+  }
+
   function resendCode() {
     setResendTimer(RESEND_SECONDS);
   }
 
   return (
-    <div>
-      <Navbar />
-      <main className="max-w-sm mx-auto px-6 py-10">
-        {step === 1 && (
-          <>
-            <h1 className="font-serif text-2xl text-ink mb-1">
-              Create your account
-            </h1>
-            <p className="text-sm text-neutral-500 mb-6">
-              Sign up to start shopping
-            </p>
-            <form
-              onSubmit={handleCreateAccount}
-              className="flex flex-col gap-3"
-            >
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="border border-neutral-300 rounded px-3 py-2"
-                required
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="border border-neutral-300 rounded px-3 py-2"
-                required
-              />
-              <div className="flex border border-neutral-300 rounded overflow-hidden">
-                <span className="px-3 py-2 bg-neutral-50 text-neutral-500 border-r border-neutral-300">
+    <AuthLayout>
+      {step === 1 && (
+        <>
+          <h1 className="font-serif text-2xl text-ink text-center mb-1">
+            Create your account
+          </h1>
+          <p className="text-sm text-neutral-500 text-center mb-6">
+            Sign up to start shopping
+          </p>
+
+          <form onSubmit={handleCreateAccount} className="flex flex-col gap-4">
+            <div>
+              <label className="text-sm text-neutral-600 mb-1 block">
+                Full Name
+              </label>
+              <div className="flex items-center border border-neutral-300 rounded px-3">
+                <User size={16} className="text-neutral-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="flex-1 px-2 py-2 outline-none text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-neutral-600 mb-1 block">
+                Email
+              </label>
+              <div className="flex items-center border border-neutral-300 rounded px-3">
+                <Mail size={16} className="text-neutral-400 flex-shrink-0" />
+                <input
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 px-2 py-2 outline-none text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-neutral-600 mb-1 block">
+                Phone Number
+              </label>
+              <div className="flex items-center border border-neutral-300 rounded overflow-hidden">
+                <span className="px-3 py-2 bg-neutral-50 text-neutral-500 border-r border-neutral-300 text-sm">
                   +91
                 </span>
+                <Phone
+                  size={16}
+                  className="text-neutral-400 ml-2 flex-shrink-0"
+                />
                 <input
                   type="tel"
                   inputMode="numeric"
                   maxLength={10}
-                  placeholder="Phone Number"
+                  placeholder="Enter phone number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                  className="flex-1 px-3 py-2 outline-none"
+                  className="flex-1 px-2 py-2 outline-none text-sm"
                   required
                 />
               </div>
+            </div>
 
-              <div className="relative">
+            <div>
+              <label className="text-sm text-neutral-600 mb-1 block">
+                Password
+              </label>
+              <div className="flex items-center border border-neutral-300 rounded px-3">
+                <Lock size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="border border-neutral-300 rounded px-3 py-2 w-full pr-10"
+                  className="flex-1 px-2 py-2 outline-none text-sm"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-ink transition-colors"
+                  className="text-neutral-400 hover:text-ink flex-shrink-0"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {password.length > 0 && !isPasswordValid(password) ? (
-                <p className="text-xs text-red-500 -mt-1">
+                <p className="text-xs text-red-500 mt-1">
                   {getPasswordErrorMessage(password)}
                 </p>
               ) : (
-                <p className="text-xs text-neutral-400 -mt-1">
+                <p className="text-xs text-neutral-400 mt-1">
                   Must be 8+ characters with uppercase, lowercase, number &
                   special character.
                 </p>
               )}
+            </div>
 
-              <div className="relative">
+            <div>
+              <label className="text-sm text-neutral-600 mb-1 block">
+                Confirm Password
+              </label>
+              <div className="flex items-center border border-neutral-300 rounded px-3">
+                <Lock size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm Password"
+                  placeholder="Confirm your password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="border border-neutral-300 rounded px-3 py-2 w-full pr-10"
+                  className="flex-1 px-2 py-2 outline-none text-sm"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-ink transition-colors"
+                  className="text-neutral-400 hover:text-ink flex-shrink-0"
                 >
                   {showConfirmPassword ? (
-                    <EyeOff size={18} />
+                    <EyeOff size={16} />
                   ) : (
-                    <Eye size={18} />
+                    <Eye size={16} />
                   )}
                 </button>
               </div>
+            </div>
 
-              <label className="flex items-center gap-2 text-sm text-neutral-600">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                />
-                I agree to Terms & Conditions
-              </label>
-              {error && <p className="text-red-600 text-sm">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-2 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                Create Account
-              </button>
-            </form>
-            <p className="mt-4 text-sm text-neutral-500 text-center">
-              Already have an account?{" "}
-              <a href="/login" className="text-spine underline">
-                Login
-              </a>
-            </p>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <h1 className="font-serif text-2xl text-ink mb-1 text-center">
-              Verify your email
-            </h1>
-            <p className="text-sm text-neutral-500 mb-6 text-center">
-              We sent a 6-digit code to
-              <br />
-              <span className="text-ink">{maskEmail(email)}</span>
-            </p>
-            <form onSubmit={handleVerifyEmail} className="flex flex-col gap-4">
-              <OtpInput
-                digits={emailDigits}
-                setDigits={setEmailDigits}
-                refs={emailRefs}
+            <label className="flex items-center gap-2 text-sm text-neutral-600">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
               />
-              {error && (
-                <p className="text-red-600 text-sm text-center">{error}</p>
-              )}
-              <button
-                type="submit"
-                className="px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity"
-              >
-                Verify Email
-              </button>
-              <p className="text-sm text-neutral-500 text-center">
-                Didn't receive the code?{" "}
-                {resendTimer > 0 ? (
-                  <span className="text-neutral-400">
-                    Resend in {resendTimer}s
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={resendCode}
-                    className="text-spine underline"
-                  >
-                    Resend Code
-                  </button>
-                )}
-              </p>
-            </form>
-          </>
-        )}
+              I agree to <span className="text-spine">Terms & Conditions</span>
+            </label>
 
-        {step === 3 && (
-          <>
-            <h1 className="font-serif text-2xl text-ink mb-1 text-center">
-              Verify your phone
-            </h1>
-            <p className="text-sm text-neutral-500 mb-6 text-center">
-              We sent a 6-digit OTP to
-              <br />
-              <span className="text-ink">{maskPhone(phone)}</span>
-            </p>
-            <form onSubmit={handleVerifyPhone} className="flex flex-col gap-4">
-              <OtpInput
-                digits={phoneDigits}
-                setDigits={setPhoneDigits}
-                refs={phoneRefs}
-              />
-              {error && (
-                <p className="text-red-600 text-sm text-center">{error}</p>
-              )}
-              <button
-                type="submit"
-                className="px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity"
-              >
-                Verify Phone
-              </button>
-              <p className="text-sm text-neutral-500 text-center">
-                Didn't receive the OTP?{" "}
-                {resendTimer > 0 ? (
-                  <span className="text-neutral-400">
-                    Resend in {resendTimer}s
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={resendCode}
-                    className="text-spine underline"
-                  >
-                    Resend OTP
-                  </button>
-                )}
-              </p>
-            </form>
-          </>
-        )}
+            {error && <p className="text-red-600 text-sm">{error}</p>}
 
-        {step === 4 && (
-          <div className="text-center">
-            <div className="text-4xl mb-4">✓</div>
-            <h1 className="font-serif text-2xl text-ink mb-2">
-              Account verified!
-            </h1>
-            <p className="text-neutral-500 mb-8">Welcome to Bookstore 🎉</p>
             <button
-              onClick={() => router.push("/products")}
-              className="px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity"
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              Start Shopping
+              Create Account
             </button>
+          </form>
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-neutral-200" />
+            <span className="text-xs text-neutral-400">OR</span>
+            <div className="flex-1 h-px bg-neutral-200" />
           </div>
-        )}
-      </main>
-    </div>
+
+          <button
+            onClick={handleGoogleSignup}
+            className="w-full px-5 py-2.5 border border-neutral-300 rounded text-ink hover:bg-neutral-50 transition-colors text-sm"
+          >
+            Continue with Google
+          </button>
+
+          <p className="mt-6 text-sm text-neutral-500 text-center">
+            Already have an account?{" "}
+            <a href="/login" className="text-spine underline">
+              Login
+            </a>
+          </p>
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <h1 className="font-serif text-2xl text-ink text-center mb-1">
+            Verify your email
+          </h1>
+          <p className="text-sm text-neutral-500 text-center mb-6">
+            We sent a 6-digit code to
+            <br />
+            <span className="text-ink">{maskEmail(email)}</span>
+          </p>
+          <form onSubmit={handleVerifyEmail} className="flex flex-col gap-4">
+            <OtpInput
+              digits={emailDigits}
+              setDigits={setEmailDigits}
+              refs={emailRefs}
+            />
+            {error && (
+              <p className="text-red-600 text-sm text-center">{error}</p>
+            )}
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity"
+            >
+              Verify Email
+            </button>
+            <p className="text-sm text-neutral-500 text-center">
+              Didn't receive the code?{" "}
+              {resendTimer > 0 ? (
+                <span className="text-neutral-400">
+                  Resend in {resendTimer}s
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resendCode}
+                  className="text-spine underline"
+                >
+                  Resend Code
+                </button>
+              )}
+            </p>
+          </form>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <h1 className="font-serif text-2xl text-ink text-center mb-1">
+            Verify your phone
+          </h1>
+          <p className="text-sm text-neutral-500 text-center mb-6">
+            We sent a 6-digit OTP to
+            <br />
+            <span className="text-ink">{maskPhone(phone)}</span>
+          </p>
+          <form onSubmit={handleVerifyPhone} className="flex flex-col gap-4">
+            <OtpInput
+              digits={phoneDigits}
+              setDigits={setPhoneDigits}
+              refs={phoneRefs}
+            />
+            {error && (
+              <p className="text-red-600 text-sm text-center">{error}</p>
+            )}
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity"
+            >
+              Verify Phone
+            </button>
+            <p className="text-sm text-neutral-500 text-center">
+              Didn't receive the OTP?{" "}
+              {resendTimer > 0 ? (
+                <span className="text-neutral-400">
+                  Resend in {resendTimer}s
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resendCode}
+                  className="text-spine underline"
+                >
+                  Resend OTP
+                </button>
+              )}
+            </p>
+          </form>
+        </>
+      )}
+
+      {step === 4 && (
+        <div className="text-center">
+          <div className="text-4xl mb-4">✓</div>
+          <h1 className="font-serif text-2xl text-ink mb-2">
+            Account verified!
+          </h1>
+          <p className="text-neutral-500 mb-8">Welcome to Islamic Store 🎉</p>
+          <button
+            onClick={() => router.push("/products")}
+            className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity"
+          >
+            Start Shopping
+          </button>
+        </div>
+      )}
+    </AuthLayout>
   );
 }
