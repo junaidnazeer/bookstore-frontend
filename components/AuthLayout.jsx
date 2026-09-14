@@ -76,7 +76,7 @@ export default function AuthLayout({ children }) {
           <div className="text-center mb-6">
             <MosqueIcon size={40} className="text-spine mx-auto mb-2" />
             <p className="font-serif text-lg text-spine leading-tight">
-              Islamic Store
+              Maktabah Islamiyah
             </p>
             <p className="text-xs text-neutral-400">
               Faith · Knowledge · Lifestyle
