@@ -9,7 +9,11 @@ const CATEGORIES = [
   { value: "", label: "All" },
   { value: "books", label: "Books" },
   { value: "attars", label: "Attars" },
-  { value: "clothing", label: "Clothing" },
+  { value: "caps", label: "Caps" },
+  { value: "shalwar-kameez", label: "Shalwar Kameez" },
+  { value: "abayas", label: "Abayas" },
+  { value: "jilbabs", label: "Jilbabs" },
+  { value: "prayer-quran-accessories", label: "Prayer & Quran Accessories" },
 ];
 
 export default function Products() {
@@ -18,10 +22,12 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [category, setCategory] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     if (router.query.category) setCategory(router.query.category);
-  }, [router.query.category]);
+    if (router.query.search) setSearchTerm(router.query.search);
+  }, [router.query.category, router.query.search]);
 
   useEffect(() => {
     setLoading(true);
@@ -33,11 +39,41 @@ export default function Products() {
       .finally(() => setLoading(false));
   }, [category]);
 
+  // Client-side name filter, since backend search support isn't confirmed yet.
+  function matchesSearch(product, term) {
+    const normalized = term.toLowerCase().trim();
+    // Basic plural tolerance: "abayas" also matches "abaya".
+    const singular = normalized.endsWith("s")
+      ? normalized.slice(0, -1)
+      : normalized;
+    const haystack =
+      `${product.name} ${product.categoryName || ""}`.toLowerCase();
+    return haystack.includes(normalized) || haystack.includes(singular);
+  }
+
+  const visibleProducts = searchTerm
+    ? products.filter((p) => matchesSearch(p, searchTerm))
+    : products;
+
   return (
     <div>
       <Navbar />
       <main className="max-w-5xl mx-auto px-6 py-10">
-        <h1 className="font-serif text-2xl text-ink mb-6">Browse products</h1>
+        <h1 className="font-serif text-2xl text-ink mb-2">Browse products</h1>
+        {searchTerm && (
+          <p className="text-sm text-neutral-500 mb-4">
+            Showing results for "{searchTerm}"{" "}
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                router.push("/products");
+              }}
+              className="text-spine underline ml-1"
+            >
+              Clear
+            </button>
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2 mb-6">
           {CATEGORIES.map((c) => (
@@ -57,9 +93,12 @@ export default function Products() {
 
         {loading && <p className="text-neutral-500">Loading products...</p>}
         {error && <p className="text-red-600">{error}</p>}
+        {!loading && !error && visibleProducts.length === 0 && (
+          <p className="text-neutral-500">No products found.</p>
+        )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {products.map((product) => (
+          {visibleProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
