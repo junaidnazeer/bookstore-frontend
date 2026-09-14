@@ -65,7 +65,7 @@ export default function Navbar() {
           <MosqueIcon className="text-spine" />
           <div>
             <div className="font-serif text-xl text-spine leading-tight">
-              Islamic Store
+              Maktabah Islamiyah
             </div>
             <div className="text-xs text-neutral-400 hidden sm:block">
               Books · Attars · Clothing · More

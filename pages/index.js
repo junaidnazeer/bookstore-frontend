@@ -277,7 +277,9 @@ export default function Home() {
       <footer className="bg-ink text-white">
         <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
           <div>
-            <p className="font-serif text-lg mb-2">Islamic Store</p>
+            <p className="font-serif text-lg mb-2">
+              Maktabah Islamiyah Jammu And Kashmir
+            </p>
             <p className="text-xs text-white/50">
               Books · Attars · Shalwar Kameez · Abayas · Jilbabs · More
             </p>
@@ -313,7 +315,7 @@ export default function Home() {
           </div>
         </div>
         <div className="border-t border-white/10 px-6 py-4 text-xs text-white/40 text-center">
-          © 2026 Islamic Store. All rights reserved.
+          © 2026 Maktabah Islamiyah Jammu And Kashmir. All rights reserved.
         </div>
       </footer>
     </div>
