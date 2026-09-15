@@ -87,14 +87,15 @@ export default function Home() {
 
       {/* Hero */}
       <section
-        className="relative w-full h-[420px] md:h-[480px] bg-cover bg-center"
+        className="relative w-full h-[360px] md:h-[420px] bg-cover"
         style={{
           backgroundImage:
             "url('https://images.pexels.com/photos/37697015/pexels-photo-37697015.jpeg')",
+          backgroundPosition: "center 30%",
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-paper via-paper/80 to-transparent" />
-
+        <div className="absolute inset-0 bg-paper/50" />
+        <div className="absolute inset-0 bg-gradient-to-r from-paper via-paper/70 to-transparent" />
         <button
           aria-label="Previous slide"
           className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 flex items-center justify-center text-ink hover:bg-white transition-colors z-10"
