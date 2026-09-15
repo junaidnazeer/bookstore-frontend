@@ -38,7 +38,9 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      <h1 className="font-serif text-2xl text-ink text-center mb-1">Login</h1>
+      <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
+        Login
+      </h1>
       <p className="text-sm text-neutral-500 text-center mb-6">
         Login to your account
       </p>
@@ -46,7 +48,7 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label className="text-sm text-neutral-600 mb-1 block">Email</label>
-          <div className="flex items-center border border-neutral-300 rounded px-3">
+          <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
             <Mail size={16} className="text-neutral-400 flex-shrink-0" />
             <input
               type="email"
@@ -63,7 +65,7 @@ export default function Login() {
           <label className="text-sm text-neutral-600 mb-1 block">
             Password
           </label>
-          <div className="flex items-center border border-neutral-300 rounded px-3">
+          <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
             <Lock size={16} className="text-neutral-400 flex-shrink-0" />
             <input
               type={showPassword ? "text" : "password"}
@@ -95,7 +97,7 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {loading ? "Logging in..." : "Login"}
         </button>
@@ -109,7 +111,7 @@ export default function Login() {
 
       <button
         onClick={handleGoogleLogin}
-        className="w-full px-5 py-2.5 border border-neutral-300 rounded text-ink hover:bg-neutral-50 transition-colors text-sm"
+        className="w-full px-5 py-3 border border-neutral-300 rounded-lg text-ink hover:bg-neutral-50 transition-colors text-sm"
       >
         Continue with Google
       </button>
