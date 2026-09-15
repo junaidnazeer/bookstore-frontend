@@ -150,13 +150,16 @@ export default function Checkout() {
             <h2 className="font-medium text-ink mb-3">Order summary</h2>
             <div className="flex flex-col gap-3">
               {items.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span className="text-neutral-600">
+                <div
+                  key={item.id}
+                  className="flex justify-between gap-3 text-sm"
+                >
+                  <span className="text-neutral-600 min-w-0 truncate">
                     {item.name}
                     {item.size ? ` (${item.size})` : ""}
                     {item.color ? ` - ${item.color}` : ""} × {item.quantity}
                   </span>
-                  <span className="text-ink">
+                  <span className="text-ink flex-shrink-0">
                     ₹{item.price * item.quantity}
                   </span>
                 </div>

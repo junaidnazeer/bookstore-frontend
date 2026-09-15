@@ -52,10 +52,10 @@ export default function Cart() {
                 )}
               </div>
 
-              <div className="flex-1">
-                <h3 className="font-medium text-ink">{item.name}</h3>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-ink truncate">{item.name}</h3>
                 {(item.size || item.color) && (
-                  <p className="text-sm text-neutral-500">
+                  <p className="text-sm text-neutral-500 truncate">
                     {[item.size, item.color].filter(Boolean).join(" · ")}
                   </p>
                 )}
