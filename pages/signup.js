@@ -69,7 +69,7 @@ function OtpInput({ digits, setDigits, refs }) {
           value={digit}
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
-          className="w-10 h-12 text-center border border-neutral-300 rounded text-lg"
+          className="w-10 h-12 text-center border border-neutral-300 rounded-lg text-lg"
         />
       ))}
     </div>
@@ -158,7 +158,7 @@ export default function Signup() {
     <AuthLayout>
       {step === 1 && (
         <>
-          <h1 className="font-serif text-2xl text-ink text-center mb-1">
+          <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
             Create your account
           </h1>
           <p className="text-sm text-neutral-500 text-center mb-6">
@@ -170,7 +170,7 @@ export default function Signup() {
               <label className="text-sm text-neutral-600 mb-1 block">
                 Full Name
               </label>
-              <div className="flex items-center border border-neutral-300 rounded px-3">
+              <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
                 <User size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type="text"
@@ -187,7 +187,7 @@ export default function Signup() {
               <label className="text-sm text-neutral-600 mb-1 block">
                 Email
               </label>
-              <div className="flex items-center border border-neutral-300 rounded px-3">
+              <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
                 <Mail size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type="email"
@@ -204,7 +204,7 @@ export default function Signup() {
               <label className="text-sm text-neutral-600 mb-1 block">
                 Phone Number
               </label>
-              <div className="flex items-center border border-neutral-300 rounded overflow-hidden">
+              <div className="flex items-center border border-neutral-300 rounded-lg overflow-hidden">
                 <span className="px-3 py-2 bg-neutral-50 text-neutral-500 border-r border-neutral-300 text-sm">
                   +91
                 </span>
@@ -229,7 +229,7 @@ export default function Signup() {
               <label className="text-sm text-neutral-600 mb-1 block">
                 Password
               </label>
-              <div className="flex items-center border border-neutral-300 rounded px-3">
+              <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
                 <Lock size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type={showPassword ? "text" : "password"}
@@ -263,7 +263,7 @@ export default function Signup() {
               <label className="text-sm text-neutral-600 mb-1 block">
                 Confirm Password
               </label>
-              <div className="flex items-center border border-neutral-300 rounded px-3">
+              <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
                 <Lock size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
@@ -301,7 +301,7 @@ export default function Signup() {
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               Create Account
             </button>
@@ -315,7 +315,7 @@ export default function Signup() {
 
           <button
             onClick={handleGoogleSignup}
-            className="w-full px-5 py-2.5 border border-neutral-300 rounded text-ink hover:bg-neutral-50 transition-colors text-sm"
+            className="w-full px-5 py-3 border border-neutral-300 rounded-lg text-ink hover:bg-neutral-50 transition-colors text-sm"
           >
             Continue with Google
           </button>
@@ -331,7 +331,7 @@ export default function Signup() {
 
       {step === 2 && (
         <>
-          <h1 className="font-serif text-2xl text-ink text-center mb-1">
+          <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
             Verify your email
           </h1>
           <p className="text-sm text-neutral-500 text-center mb-6">
@@ -350,7 +350,7 @@ export default function Signup() {
             )}
             <button
               type="submit"
-              className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity"
+              className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
               Verify Email
             </button>
@@ -376,7 +376,7 @@ export default function Signup() {
 
       {step === 3 && (
         <>
-          <h1 className="font-serif text-2xl text-ink text-center mb-1">
+          <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
             Verify your phone
           </h1>
           <p className="text-sm text-neutral-500 text-center mb-6">
@@ -395,7 +395,7 @@ export default function Signup() {
             )}
             <button
               type="submit"
-              className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity"
+              className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
               Verify Phone
             </button>
@@ -422,13 +422,15 @@ export default function Signup() {
       {step === 4 && (
         <div className="text-center">
           <div className="text-4xl mb-4">✓</div>
-          <h1 className="font-serif text-2xl text-ink mb-2">
+          <h1 className="font-serif text-3xl font-semibold text-ink mb-2">
             Account verified!
           </h1>
-          <p className="text-neutral-500 mb-8">Welcome to Islamic Store 🎉</p>
+          <p className="text-neutral-500 mb-8">
+            Welcome to Maktabah Islamiyah 🎉
+          </p>
           <button
             onClick={() => router.push("/products")}
-            className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity"
+            className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
           >
             Start Shopping
           </button>
