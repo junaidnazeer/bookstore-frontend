@@ -19,7 +19,12 @@ export default function Login() {
     try {
       const res = await api.post("/auth/login", { email, password });
       window.localStorage.setItem("token", res.data.token);
-      router.push("/");
+      window.localStorage.setItem("role", res.data.user?.role || "CUSTOMER");
+      if (res.data.user?.role === "ADMIN") {
+        router.push("/admin/products");
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       setError("Login failed. Check your email and password.");
     } finally {

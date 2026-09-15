@@ -60,8 +60,11 @@ export default function Navbar() {
       </div>
 
       {/* Main row */}
-      <div className="border-b border-neutral-200 px-6 py-4 flex items-center gap-6 bg-paper">
-        <Link href="/" className="flex-shrink-0 flex items-center gap-2">
+      <div className="border-b border-neutral-200 px-6 py-4 flex flex-wrap items-center gap-4 md:gap-6 bg-paper">
+        <Link
+          href="/"
+          className="flex-shrink-0 flex items-center gap-2 order-1 md:order-none"
+        >
           <MosqueIcon className="text-spine" />
           <div>
             <div className="font-serif text-xl text-spine leading-tight">
@@ -72,22 +75,8 @@ export default function Navbar() {
             </div>
           </div>
         </Link>
-        <form onSubmit={handleSearch} className="flex-1 max-w-md mx-auto">
-          <div className="flex border border-neutral-300 rounded overflow-hidden">
-            <input
-              type="text"
-              placeholder="Search books, attars, clothing..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-3 py-2 text-sm outline-none"
-            />
-            <button type="submit" className="px-3 text-neutral-400">
-              <Search size={18} />
-            </button>
-          </div>
-        </form>
 
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex items-center gap-4 flex-shrink-0 order-2 md:order-none ml-auto md:ml-0">
           <Link href="/cart" className="relative text-ink">
             <ShoppingCart size={20} />
             {count > 0 && (
@@ -117,6 +106,27 @@ export default function Navbar() {
             </div>
           )}
         </div>
+
+        <form
+          onSubmit={handleSearch}
+          className="order-3 md:order-none w-full md:w-auto md:flex-1 md:max-w-md md:mx-auto"
+        >
+          <div className="flex border border-neutral-300 rounded overflow-hidden">
+            <input
+              type="text"
+              placeholder="Search books, attars, clothing..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-2 text-sm outline-none"
+            />
+            <button
+              type="submit"
+              className="px-3 text-neutral-400 flex-shrink-0"
+            >
+              <Search size={18} />
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Category row */}
