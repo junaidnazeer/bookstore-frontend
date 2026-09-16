@@ -13,20 +13,25 @@ const LOW_STOCK_THRESHOLD = 10;
 
 function StatCard({ icon: Icon, label, value, tone = "neutral" }) {
   const tones = {
-    neutral: "bg-white text-ink",
-    warning: "bg-red-50 text-red-700",
+    neutral: { card: "bg-white text-ink", badge: "bg-spine/10 text-spine" },
+    warning: {
+      card: "bg-red-50 text-red-700",
+      badge: "bg-red-100 text-red-600",
+    },
   };
+  const t = tones[tone];
   return (
     <div
-      className={`rounded-lg border border-neutral-200 p-4 flex items-center gap-3 ${tones[tone]}`}
+      className={`rounded-xl border border-neutral-200 shadow-sm p-5 flex items-center gap-4 ${t.card}`}
     >
-      <Icon
-        size={22}
-        className={tone === "warning" ? "text-red-500" : "text-spine"}
-      />
+      <div
+        className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 ${t.badge}`}
+      >
+        <Icon size={20} />
+      </div>
       <div>
         <p className="text-xs text-neutral-500">{label}</p>
-        <p className="text-xl font-semibold">{value}</p>
+        <p className="text-2xl font-semibold">{value}</p>
       </div>
     </div>
   );
@@ -54,7 +59,9 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-ink">Dashboard</h1>
+        <h1 className="font-serif text-3xl font-semibold text-ink">
+          Dashboard
+        </h1>
       </div>
 
       {loading ? (
@@ -86,18 +93,18 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white border border-neutral-200 rounded-lg p-5">
+            <div className="bg-white border border-neutral-200 rounded-xl shadow-sm p-6">
               <p className="font-medium text-ink mb-3">Quick Actions</p>
               <div className="flex gap-3">
                 <Link
                   href="/admin/products"
-                  className="px-4 py-2 bg-spine text-white rounded text-sm"
+                  className="px-4 py-2.5 bg-spine text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
                 >
                   Manage Products
                 </Link>
                 <Link
                   href="/admin/orders"
-                  className="px-4 py-2 border border-spine text-spine rounded text-sm"
+                  className="px-4 py-2.5 border border-spine text-spine rounded-lg text-sm font-medium hover:bg-spine/5 transition-colors"
                 >
                   Manage Orders
                 </Link>
@@ -105,7 +112,7 @@ export default function AdminDashboard() {
             </div>
 
             {lowStock.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-5">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl shadow-sm p-6">
                 <p className="font-medium text-amber-800 mb-1 flex items-center gap-2">
                   <AlertTriangle size={16} /> Low Stock Alert
                 </p>

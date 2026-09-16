@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { Eye, EyeOff } from "lucide-react";
-import MosqueIcon from "../../components/MosqueIcon";
+import { Eye, EyeOff, Mail, Lock, Settings } from "lucide-react";
+import AuthLayout from "../../components/AuthLayout";
 import api from "../../lib/api";
 
 export default function AdminLogin() {
@@ -27,103 +27,119 @@ export default function AdminLogin() {
       window.localStorage.setItem("role", res.data.user.role);
       router.push("/admin/dashboard");
     } catch (err) {
-      setError("Invalid email or password.");
+      if (err.response) {
+        setError(
+          err.response.data?.message ||
+            `Login failed (${err.response.status}). Check your email and password.`,
+        );
+      } else if (err.request) {
+        setError(
+          "Could not reach the server. Is the backend running and NEXT_PUBLIC_API_URL correct?",
+        );
+      } else {
+        setError("Something went wrong: " + err.message);
+      }
     } finally {
       setLoading(false);
     }
   }
 
+  function handleGoogleLogin() {
+    setError("Google login isn't set up yet.");
+  }
+
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
-      {/* Left: dark hero panel */}
-      <div
-        className="hidden md:flex flex-col justify-end p-10 text-white relative"
-        style={{
-          backgroundColor: "#1E3D32",
-          backgroundImage:
-            "url('https://images.pexels.com/photos/37697015/pexels-photo-37697015.jpeg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-8">
-            <MosqueIcon size={32} className="text-white" />
-            <div>
-              <p className="font-serif text-lg leading-tight">
-                Maktabah Islamiyah
-              </p>
-              <p className="text-xs text-white/70">Islamic Store</p>
-            </div>
+    <AuthLayout>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex-1 h-px bg-neutral-200" />
+        <Settings size={16} className="text-neutral-300" />
+        <div className="flex-1 h-px bg-neutral-200" />
+      </div>
+
+      <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
+        Admin Login
+      </h1>
+      <p className="text-sm text-neutral-500 text-center mb-6">
+        Access your admin panel
+      </p>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div>
+          <label className="text-sm text-neutral-600 mb-1 block">Email</label>
+          <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
+            <Mail size={16} className="text-neutral-400 flex-shrink-0" />
+            <input
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1 px-2 py-2 outline-none text-sm"
+              required
+            />
           </div>
-          <h1 className="font-serif text-3xl mb-2">Admin Portal</h1>
-          <p className="text-white/80">Sign in to manage your store</p>
         </div>
-      </div>
 
-      {/* Right: login form */}
-      <div className="flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-sm">
-          <h2 className="text-2xl font-semibold text-ink mb-6">Admin Login</h2>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div>
-              <label className="text-sm text-neutral-600 mb-1 block">
-                Email
-              </label>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-neutral-600 mb-1 block">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-neutral-300 rounded px-3 py-2 text-sm pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-
+        <div>
+          <label className="text-sm text-neutral-600 mb-1 block">
+            Password
+          </label>
+          <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
+            <Lock size={16} className="text-neutral-400 flex-shrink-0" />
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="flex-1 px-2 py-2 outline-none text-sm"
+              required
+            />
             <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2.5 bg-spine text-white rounded font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="text-neutral-400 hover:text-ink flex-shrink-0"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
-          </form>
-
-          <button
-            onClick={() => router.push("/")}
-            className="mt-4 text-sm text-neutral-500 hover:text-spine"
-          >
-            ← Back to Store
-          </button>
+          </div>
         </div>
+
+        <a
+          href="/forgot-password"
+          className="text-sm text-spine text-right -mt-2"
+        >
+          Forgot Password?
+        </a>
+
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          {loading ? "Signing in..." : "Sign In"}
+        </button>
+      </form>
+
+      <div className="flex items-center gap-3 my-5">
+        <div className="flex-1 h-px bg-neutral-200" />
+        <span className="text-xs text-neutral-400">OR</span>
+        <div className="flex-1 h-px bg-neutral-200" />
       </div>
-    </div>
+
+      <button
+        onClick={handleGoogleLogin}
+        className="w-full px-5 py-3 border border-neutral-300 rounded-lg text-ink hover:bg-neutral-50 transition-colors text-sm"
+      >
+        Continue with Google
+      </button>
+
+      <button
+        onClick={() => router.push("/")}
+        className="mt-6 text-sm text-neutral-500 hover:text-spine block mx-auto"
+      >
+        ← Back to Store
+      </button>
+    </AuthLayout>
   );
 }
