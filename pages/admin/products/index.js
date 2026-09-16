@@ -119,17 +119,17 @@ export default function AdminProducts() {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h1 className="text-2xl font-semibold text-ink">Products</h1>
         <Link
           href="/admin/products/new"
-          className="px-4 py-2 bg-spine text-white rounded text-sm font-medium"
+          className="px-4 py-2 bg-spine text-white rounded text-sm font-medium text-center"
         >
           + Add New Product
         </Link>
       </div>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="flex items-center border border-neutral-300 rounded px-3 flex-1 bg-white">
           <Search size={16} className="text-neutral-400" />
           <input
@@ -137,13 +137,13 @@ export default function AdminProducts() {
             placeholder="Search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 px-2 py-2 outline-none text-sm"
+            className="flex-1 min-w-0 px-2 py-2 outline-none text-sm"
           />
         </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="border border-neutral-300 rounded px-3 py-2 text-sm bg-white"
+          className="border border-neutral-300 rounded px-3 py-2 text-sm bg-white w-full sm:w-auto"
         >
           {CATEGORY_OPTIONS.map((c) => (
             <option key={c.value} value={c.value}>
