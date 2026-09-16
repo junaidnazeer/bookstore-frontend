@@ -124,9 +124,7 @@ export default function AdminLayout({ children }) {
 
       {/* Sidebar: static on desktop, slide-in on mobile */}
       <aside
-        className={`w-56 bg-white border-r border-neutral-200 flex flex-col shadow-sm
-          fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-200
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+        className={`w-64 md:w-56 bg-white border-r border-neutral-200 flex flex-col shadow-sm fixed md:static inset-y-0 left-0 z-50 transition-transform duration-200 md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         {sidebarContent}
       </aside>
