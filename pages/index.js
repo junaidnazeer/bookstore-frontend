@@ -96,18 +96,6 @@ export default function Home() {
       >
         <div className="absolute inset-0 bg-paper/50" />
         <div className="absolute inset-0 bg-gradient-to-r from-paper via-paper/70 to-transparent" />
-        <button
-          aria-label="Previous slide"
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 flex items-center justify-center text-ink hover:bg-white transition-colors z-10"
-        >
-          ‹
-        </button>
-        <button
-          aria-label="Next slide"
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 flex items-center justify-center text-ink hover:bg-white transition-colors z-10"
-        >
-          ›
-        </button>
 
         <div className="relative max-w-6xl mx-auto px-6 h-full flex items-center">
           <div className="max-w-md">
@@ -265,7 +253,7 @@ export default function Home() {
             <input
               type="email"
               placeholder="Enter your email address"
-              className="px-3 py-2 rounded bg-white text-ink placeholder:text-neutral-400 border-0 outline-none flex-1 md:w-64"
+              className="px-3 py-2 rounded bg-white text-ink placeholder:text-neutral-400 border-0 outline-none flex-1 min-w-0 md:w-64"
             />
             <button className="px-4 py-2 bg-white text-spine rounded font-medium">
               Subscribe
