@@ -60,56 +60,55 @@ export default function Navbar() {
       </div>
 
       {/* Main row */}
-      <div className="border-b border-neutral-200 px-6 py-4 flex flex-wrap items-center gap-4 md:gap-6 bg-paper">
-        <Link
-          href="/"
-          className="flex-shrink-0 flex items-center gap-2 order-1 md:order-none"
-        >
-          <MosqueIcon className="text-spine" />
-          <div>
-            <div className="font-serif text-xl text-spine leading-tight">
-              Maktabah Islamiyah
+      <div className="border-b border-neutral-200 px-6 py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-6 bg-paper">
+        <div className="flex items-center justify-between md:contents">
+          <Link href="/" className="flex-shrink-0 flex items-center gap-2">
+            <MosqueIcon className="text-spine" />
+            <div>
+              <div className="font-serif text-xl text-spine leading-tight">
+                Maktabah Islamiyah
+              </div>
+              <div className="text-xs text-neutral-400 hidden sm:block">
+                Books · Attars · Clothing · More
+              </div>
             </div>
-            <div className="text-xs text-neutral-400 hidden sm:block">
-              Books · Attars · Clothing · More
-            </div>
-          </div>
-        </Link>
-
-        <div className="flex items-center gap-4 flex-shrink-0 order-2 md:order-none ml-auto md:ml-0">
-          <Link href="/cart" className="relative text-ink">
-            <ShoppingCart size={20} />
-            {count > 0 && (
-              <span className="absolute -top-2 -right-2 bg-spine text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                {count}
-              </span>
-            )}
           </Link>
 
-          {isLoggedIn ? (
-            <button
-              onClick={handleLogout}
-              className="text-sm text-ink flex items-center gap-1"
-            >
-              <User size={18} /> Logout
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 text-sm">
-              <User size={18} className="text-ink" />
-              <Link href="/login" className="text-ink hover:text-spine">
-                Login
-              </Link>
-              <span className="text-neutral-300">/</span>
-              <Link href="/signup" className="text-ink hover:text-spine">
-                Sign Up
-              </Link>
-            </div>
-          )}
+          <div className="flex items-center gap-4 flex-shrink-0 md:order-3 md:ml-auto">
+            <Link href="/cart" className="relative text-ink">
+              <ShoppingCart size={20} />
+              {count > 0 && (
+                <span className="absolute -top-2 -right-2 bg-spine text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                  {count}
+                </span>
+              )}
+            </Link>
+
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="text-sm text-ink flex items-center gap-1"
+              >
+                <User size={18} /> Logout
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 text-sm">
+                <User size={18} className="text-ink" />
+                <Link href="/login" className="text-ink hover:text-spine">
+                  Login
+                </Link>
+                <span className="text-neutral-300">/</span>
+                <Link href="/signup" className="text-ink hover:text-spine">
+                  Sign Up
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
 
         <form
           onSubmit={handleSearch}
-          className="order-3 md:order-none w-full md:w-auto md:flex-1 md:max-w-md md:mx-auto"
+          className="w-full md:w-auto md:flex-1 md:max-w-md md:mx-auto md:order-2"
         >
           <div className="flex border border-neutral-300 rounded overflow-hidden">
             <input
