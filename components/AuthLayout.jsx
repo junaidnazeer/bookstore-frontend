@@ -63,17 +63,17 @@ function MosqueSkyline() {
 export default function AuthLayout({ children }) {
   return (
     <div
-      className="relative min-h-screen overflow-hidden py-16 px-6 text-ink"
+      className="relative min-h-screen overflow-hidden py-6 sm:py-10 md:py-16 px-6 text-ink"
       style={{ backgroundColor: "#F3ECDD" }}
     >
       <HangingLantern side="left" />
       <HangingLantern side="right" />
       <MosqueSkyline />
 
-      <div className="relative max-w-md mx-auto bg-white rounded-2xl shadow-lg p-10 z-10">
-        <Link href="/" className="block text-center mb-6">
-          <MosqueIcon size={40} className="text-spine mx-auto mb-2" />
-          <p className="font-serif text-xl text-spine leading-tight">
+      <div className="relative max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10 z-10">
+        <Link href="/" className="block text-center mb-4 md:mb-6">
+          <MosqueIcon size={36} className="text-spine mx-auto mb-1 md:mb-2" />
+          <p className="font-serif text-lg md:text-xl text-spine leading-tight">
             Maktabah Islamiyah
           </p>
           <p className="text-xs text-neutral-400">
@@ -83,7 +83,7 @@ export default function AuthLayout({ children }) {
         {children}
       </div>
 
-      <p className="relative z-10 text-center text-xs text-neutral-400 mt-8">
+      <p className="relative z-10 text-center text-xs text-neutral-400 mt-4 md:mt-8">
         © 2026 Maktabah Islamiyah Jammu And Kashmir. All rights reserved.
       </p>
     </div>

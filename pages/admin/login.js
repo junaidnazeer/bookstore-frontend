@@ -50,20 +50,20 @@ export default function AdminLogin() {
 
   return (
     <AuthLayout>
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4 sm:mb-6">
         <div className="flex-1 h-px bg-neutral-200" />
         <Settings size={16} className="text-neutral-300" />
         <div className="flex-1 h-px bg-neutral-200" />
       </div>
 
-      <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
+      <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-ink text-center mb-1">
         Admin Login
       </h1>
-      <p className="text-sm text-neutral-500 text-center mb-6">
+      <p className="text-sm text-neutral-500 text-center mb-4 sm:mb-6">
         Access your admin panel
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:gap-4">
         <div>
           <label className="text-sm text-neutral-600 mb-1 block">Email</label>
           <div className="flex items-center border border-neutral-300 rounded-lg px-3 py-0.5">
@@ -96,7 +96,7 @@ export default function AdminLogin() {
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="text-neutral-400 hover:text-ink flex-shrink-0"
+              className="text-neutral-400 hover:text-ink flex-shrink-0 pr-1 sm:pr-0"
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -121,7 +121,7 @@ export default function AdminLogin() {
         </button>
       </form>
 
-      <div className="flex items-center gap-3 my-5">
+      <div className="flex items-center gap-3 my-3 sm:my-5">
         <div className="flex-1 h-px bg-neutral-200" />
         <span className="text-xs text-neutral-400">OR</span>
         <div className="flex-1 h-px bg-neutral-200" />
@@ -136,7 +136,7 @@ export default function AdminLogin() {
 
       <button
         onClick={() => router.push("/")}
-        className="mt-6 text-sm text-neutral-500 hover:text-spine block mx-auto"
+        className="mt-4 sm:mt-6 text-sm text-neutral-500 hover:text-spine block mx-auto"
       >
         ← Back to Store
       </button>
