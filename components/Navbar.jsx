@@ -40,7 +40,7 @@ export default function Navbar() {
   function handleSearch(e) {
     e.preventDefault();
     if (searchTerm.trim()) {
-      router.push(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
+      router.push(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
     }
   }
 
@@ -60,12 +60,15 @@ export default function Navbar() {
       </div>
 
       {/* Main row */}
-      <div className="border-b border-neutral-200 px-6 py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-6 bg-paper">
-        <div className="flex items-center justify-between md:contents">
-          <Link href="/" className="flex-shrink-0 flex items-center gap-2">
-            <MosqueIcon className="text-spine" />
-            <div>
-              <div className="font-serif text-xl text-spine leading-tight">
+      <div className="border-b border-neutral-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col md:grid md:grid-cols-3 md:items-center gap-2 md:gap-6 bg-paper">
+        <div className="flex items-center justify-between gap-3 md:contents">
+          <Link
+            href="/"
+            className="flex-shrink-0 flex items-center gap-2 min-w-0 md:col-start-1 md:justify-self-start"
+          >
+            <MosqueIcon size={24} className="text-spine flex-shrink-0" />
+            <div className="min-w-0">
+              <div className="font-serif text-base sm:text-xl text-spine leading-tight truncate">
                 Maktabah Islamiyah
               </div>
               <div className="text-xs text-neutral-400 hidden sm:block">
@@ -74,7 +77,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-4 flex-shrink-0 md:order-3 md:ml-auto">
+          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 md:col-start-3 md:justify-self-end">
             <Link href="/cart" className="relative text-ink">
               <ShoppingCart size={20} />
               {count > 0 && (
@@ -89,11 +92,11 @@ export default function Navbar() {
                 onClick={handleLogout}
                 className="text-sm text-ink flex items-center gap-1"
               >
-                <User size={18} /> Logout
+                <User size={18} className="hidden sm:block" /> Logout
               </button>
             ) : (
-              <div className="flex items-center gap-2 text-sm">
-                <User size={18} className="text-ink" />
+              <div className="flex items-center gap-1.5 sm:gap-2 text-sm">
+                <User size={18} className="text-ink hidden sm:block" />
                 <Link href="/login" className="text-ink hover:text-spine">
                   Login
                 </Link>
@@ -108,7 +111,7 @@ export default function Navbar() {
 
         <form
           onSubmit={handleSearch}
-          className="w-full md:w-auto md:flex-1 md:max-w-md md:mx-auto md:order-2"
+          className="w-full md:col-start-2 md:justify-self-center md:w-full md:max-w-md"
         >
           <div className="flex border border-neutral-300 rounded overflow-hidden">
             <input
@@ -127,7 +130,6 @@ export default function Navbar() {
           </div>
         </form>
       </div>
-
       {/* Category row */}
       <nav className="border-b border-neutral-200 px-6 py-2 flex justify-center gap-5 text-sm text-ink overflow-x-auto bg-white">
         <Link
