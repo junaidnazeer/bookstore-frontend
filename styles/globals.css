@@ -53,3 +53,9 @@
     font-family: "Work Sans", sans-serif;
   }
 }
+
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 60px;
+  }
+}
