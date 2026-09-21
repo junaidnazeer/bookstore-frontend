@@ -6,7 +6,7 @@ import api from "../lib/api";
 
 export default function Checkout() {
   const router = useRouter();
-  const { items, total } = useCart();
+  const { items, total, clearCart } = useCart();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -18,31 +18,97 @@ export default function Checkout() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Only computed from real per-item discount data — never fabricated.
+  const totalSavings = items.reduce((sum, item) => {
+    if (!item.originalPrice) return sum;
+    return sum + (item.originalPrice - item.price) * item.quantity;
+  }, 0);
+
+  const shippingAddress = {
+    fullName,
+    phone,
+    addressLine,
+    city,
+    state,
+    pincode,
+  };
+
+  const cartItems = items.map((i) => ({
+    productId: i.id,
+    quantity: i.quantity,
+    size: i.size || null,
+    color: i.color || null,
+  }));
+
   async function handlePlaceOrder(e) {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
     try {
-      const res = await api.post("/orders", {
-        items: items.map((i) => ({
-          productId: i.id,
-          quantity: i.quantity,
-          size: i.size || null,
-          color: i.color || null,
-        })),
-        shippingAddress: {
-          fullName,
-          phone,
-          addressLine,
-          city,
-          state,
-          pincode,
-        },
+      if (!window.Razorpay) {
+        throw new Error(
+          "Razorpay hasn't loaded yet. Please try again in a moment.",
+        );
+      }
+
+      const { data } = await api.post("/checkout/create-order", {
+        items: cartItems,
       });
-      router.push(`/order-confirmation?orderId=${res.data.orderId}`);
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: "INR",
+        name: "Maktabah Islamiyah",
+        order_id: data.razorpayOrderId,
+        handler: async (response) => {
+          try {
+            const result = await api.post("/checkout/verify", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              items: cartItems,
+              shippingAddress,
+            });
+            clearCart();
+            router.push(`/order-confirmation?orderId=${result.data.orderId}`);
+          } catch (err) {
+            setError(
+              "Payment succeeded but we couldn't confirm your order. Please contact support.",
+            );
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => setLoading(false),
+        },
+        prefill: {
+          name: fullName,
+          contact: phone,
+        },
+        theme: { color: "#1E3D32" },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.on("payment.failed", () => {
+        setError("Payment failed. Please try again.");
+        setLoading(false);
+      });
+      razorpay.open();
     } catch (err) {
-      setError("Could not place order. Please try again.");
-    } finally {
+      if (err.response) {
+        setError(
+          err.response.data?.message ||
+            `Checkout failed (${err.response.status}). Is the backend's /checkout/create-order endpoint ready?`,
+        );
+      } else if (err.request) {
+        setError(
+          "Could not reach the server. Is the backend running and NEXT_PUBLIC_API_URL correct?",
+        );
+      } else {
+        setError("Checkout error: " + err.message);
+      }
       setLoading(false);
     }
   }
@@ -135,6 +201,13 @@ export default function Checkout() {
               required
             />
 
+            <div className="mt-2 border border-neutral-200 rounded px-3 py-2 bg-neutral-50">
+              <p className="text-sm font-medium text-ink">Payment method</p>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Secure payment via Razorpay — card, UPI, netbanking & wallets.
+              </p>
+            </div>
+
             {error && <p className="text-red-600 text-sm">{error}</p>}
 
             <button
@@ -142,7 +215,7 @@ export default function Checkout() {
               disabled={loading}
               className="mt-2 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {loading ? "Placing order..." : `Place order — ₹${total}`}
+              {loading ? "Processing..." : `Place order — ₹${total}`}
             </button>
           </form>
 
@@ -165,9 +238,26 @@ export default function Checkout() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t border-neutral-200 flex justify-between font-medium">
-              <span>Total</span>
-              <span className="text-brass">₹{total}</span>
+
+            <div className="mt-4 pt-4 border-t border-neutral-200 flex flex-col gap-2 text-sm">
+              <div className="flex justify-between text-neutral-600">
+                <span>Subtotal</span>
+                <span>₹{total}</span>
+              </div>
+              {totalSavings > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount</span>
+                  <span>−₹{totalSavings}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-neutral-600">
+                <span>Delivery</span>
+                <span className="text-green-600 font-medium">Free</span>
+              </div>
+              <div className="flex justify-between font-medium pt-2 border-t border-neutral-200">
+                <span>Total</span>
+                <span className="text-brass">₹{total}</span>
+              </div>
             </div>
           </div>
         </div>
