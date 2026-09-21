@@ -12,9 +12,11 @@ import {
   LogOut,
   ChevronRight,
   Phone,
+  Mail,
 } from "lucide-react";
 
 const SUPPORT_PHONES = ["7006218923", "7006886439"];
+const SUPPORT_EMAIL = "Maktabahislamiyahjk@gmail.com";
 
 function AccountRow({ icon: Icon, label, sublabel, href, onClick }) {
   const content = (
@@ -67,6 +69,10 @@ export default function Account() {
 
   function callSupport(phone) {
     window.location.href = "tel:+91" + phone;
+  }
+
+  function emailSupport() {
+    window.location.href = "mailto:" + SUPPORT_EMAIL;
   }
 
   if (!checked) return null;
@@ -155,6 +161,12 @@ export default function Account() {
                   +91 {phone}
                 </button>
               ))}
+              <button
+                onClick={emailSupport}
+                className="flex items-center gap-1 text-sm text-spine underline mt-2"
+              >
+                <Mail size={14} /> {SUPPORT_EMAIL}
+              </button>
             </div>
           )}
 
