@@ -55,9 +55,21 @@ export default function Wishlist() {
                     {product.name}
                   </h3>
                 </Link>
-                <p className="text-brass font-semibold mt-1">
-                  ₹{product.price}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-brass font-semibold">₹{product.price}</p>
+                  {product.originalPrice && (
+                    <>
+                      <p className="text-xs text-neutral-400 line-through">
+                        ₹{product.originalPrice}
+                      </p>
+                      {product.discountPercent && (
+                        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                          {product.discountPercent}% OFF
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
                 <button
                   onClick={() => addItem(product)}
                   className="mt-2 px-3 py-1.5 bg-spine text-white text-sm rounded hover:opacity-90 transition-opacity"

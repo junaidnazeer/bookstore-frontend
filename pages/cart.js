@@ -29,6 +29,13 @@ export default function Cart() {
     );
   }
 
+  // Only computed from real per-item discount data — never fabricated.
+  // If a product has no originalPrice, it contributes nothing here.
+  const totalSavings = items.reduce((sum, item) => {
+    if (!item.originalPrice) return sum;
+    return sum + (item.originalPrice - item.price) * item.quantity;
+  }, 0);
+
   return (
     <div>
       <Navbar />
@@ -59,7 +66,14 @@ export default function Cart() {
                     {[item.size, item.color].filter(Boolean).join(" · ")}
                   </p>
                 )}
-                <p className="text-brass font-semibold mt-1">₹{item.price}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-brass font-semibold">₹{item.price}</p>
+                  {item.originalPrice && (
+                    <p className="text-xs text-neutral-400 line-through">
+                      ₹{item.originalPrice}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -88,9 +102,28 @@ export default function Cart() {
           ))}
         </div>
 
-        <div className="mt-8 flex items-center justify-between border-t border-neutral-200 pt-4">
-          <span className="font-serif text-xl text-ink">Total</span>
-          <span className="font-serif text-xl text-brass">₹{total}</span>
+        <div className="mt-8 border-t border-neutral-200 pt-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-sm text-neutral-600">
+            <span>Subtotal</span>
+            <span>₹{total}</span>
+          </div>
+
+          {totalSavings > 0 && (
+            <div className="flex items-center justify-between text-sm text-green-600">
+              <span>You saved</span>
+              <span>−₹{totalSavings}</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between text-sm text-neutral-600">
+            <span>Delivery</span>
+            <span className="text-green-600 font-medium">Free</span>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-neutral-200">
+            <span className="font-serif text-xl text-ink">Total</span>
+            <span className="font-serif text-xl text-brass">₹{total}</span>
+          </div>
         </div>
 
         <button

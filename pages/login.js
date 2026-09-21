@@ -18,8 +18,10 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.post("/auth/login", { email, password });
-      window.localStorage.setItem("token", res.data.token);
+            window.localStorage.setItem("token", res.data.token);
       window.localStorage.setItem("role", res.data.user?.role || "CUSTOMER");
+      window.localStorage.setItem("userName", res.data.user?.name || "");
+      window.localStorage.setItem("userEmail", res.data.user?.email || "");
       if (res.data.user?.role === "ADMIN") {
         router.push("/admin/products");
       } else {
