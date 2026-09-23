@@ -11,6 +11,32 @@ function extractErrorMessage(err, fallback) {
   return fallback;
 }
 
+function getPasswordChecks(password) {
+  return {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  };
+}
+
+function isPasswordValid(password) {
+  return Object.values(getPasswordChecks(password)).every(Boolean);
+}
+
+function getPasswordErrorMessage(password) {
+  const checks = getPasswordChecks(password);
+  const missing = [];
+  if (!checks.length) missing.push("at least 8 characters");
+  if (!checks.uppercase) missing.push("one uppercase letter");
+  if (!checks.lowercase) missing.push("one lowercase letter");
+  if (!checks.number) missing.push("one number");
+  if (!checks.special) missing.push("one special character");
+  if (missing.length === 0) return null;
+  return `Password must contain ${missing.join(", ")}.`;
+}
+
 export default function AccountDetails() {
   const router = useRouter();
   const [checked, setChecked] = useState(false);
@@ -85,6 +111,10 @@ export default function AccountDetails() {
       setPasswordError(
         "New password must be different from your current password.",
       );
+      return;
+    }
+    if (!isPasswordValid(newPassword)) {
+      setPasswordError(getPasswordErrorMessage(newPassword));
       return;
     }
     setPasswordLoading(true);
@@ -260,6 +290,16 @@ export default function AccountDetails() {
                 {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {newPassword.length > 0 && !isPasswordValid(newPassword) ? (
+              <p className="text-xs text-red-500 mt-1">
+                {getPasswordErrorMessage(newPassword)}
+              </p>
+            ) : (
+              <p className="text-xs text-neutral-400 mt-1">
+                Must be 8+ characters with uppercase, lowercase, number &
+                special character.
+              </p>
+            )}
           </div>
 
           {passwordError && (
