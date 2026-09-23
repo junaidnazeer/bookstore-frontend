@@ -20,7 +20,7 @@ const DISPLAY_ATTRIBUTES = {
 function RelatedProductCard({ product }) {
   return (
     <Link
-      href={`/products/${product.id}`}
+      href={`/products/${product.slug}`}
       className="border border-neutral-200 rounded-lg bg-white p-3 block"
     >
       <div className="aspect-square bg-neutral-100 rounded overflow-hidden mb-2">
@@ -41,7 +41,7 @@ function RelatedProductCard({ product }) {
 
 export default function ProductDetail() {
   const router = useRouter();
-  const { id } = router.query;
+  const { slug } = router.query;
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -52,12 +52,12 @@ export default function ProductDetail() {
   const { toggleWishlist, isWishlisted } = useWishlist();
 
   useEffect(() => {
-    if (!id) return;
+    if (!slug) return;
     api
-      .get(`/products/${id}`)
+      .get(`/products/${slug}`)
       .then((res) => setProduct(normalizeProduct(res.data)))
       .catch(() => setProduct(null));
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     if (!product?.category) return;

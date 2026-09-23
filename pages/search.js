@@ -60,7 +60,7 @@ function ProductGridCard({ product }) {
         />
       </button>
 
-      <a href={`/products/${product.id}`} className="block">
+      <a href={`/products/${product.slug}`} className="block">
         <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden mb-3">
           {product.image && (
             // eslint-disable-next-line @next/next/no-img-element

@@ -4,16 +4,18 @@ import { Eye, EyeOff, User, Mail, Phone, Lock } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
 import api from "../lib/api";
 
+function extractErrorMessage(err, fallback) {
+  if (err.response) return err.response.data?.message || fallback;
+  if (err.request) return "Could not reach the server. Please try again.";
+  return fallback;
+}
+
 const RESEND_SECONDS = 30;
 
 function maskEmail(email) {
   const [user, domain] = email.split("@");
   if (!user || !domain) return email;
   return `${user.slice(0, 4)}${"*".repeat(Math.max(user.length - 4, 2))}@${domain}`;
-}
-
-function maskPhone(phone) {
-  return `+91 ${"*".repeat(6)}${phone.slice(-4)}`;
 }
 
 function getPasswordChecks(password) {
@@ -90,9 +92,7 @@ export default function Signup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [emailDigits, setEmailDigits] = useState(["", "", "", "", "", ""]);
-  const [phoneDigits, setPhoneDigits] = useState(["", "", "", "", "", ""]);
   const emailRefs = useRef([]);
-  const phoneRefs = useRef([]);
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -104,7 +104,7 @@ export default function Signup() {
     return () => clearTimeout(t);
   }, [resendTimer]);
 
-  function handleCreateAccount(e) {
+  async function handleCreateAccount(e) {
     e.preventDefault();
     setError(null);
     if (!isPasswordValid(password)) return;
@@ -116,14 +116,19 @@ export default function Signup() {
       setError("Please agree to the Terms & Conditions.");
       return;
     }
-    // TEMPORARY: skips real signup + email OTP API calls for UI testing
-    // since backend isn't ready. Revert to real api.post("/auth/signup", ...)
-    // and api.post("/auth/send-email-otp", ...) once Murtaza's endpoints exist.
-    setStep(2);
-    setResendTimer(RESEND_SECONDS);
+    setLoading(true);
+    try {
+      await api.post("/auth/send-otp", { email });
+      setStep(2);
+      setResendTimer(RESEND_SECONDS);
+    } catch (err) {
+      setError(extractErrorMessage(err, "Could not send verification code."));
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function handleVerifyEmail(e) {
+  async function handleVerifyEmail(e) {
     e.preventDefault();
     setError(null);
     const code = emailDigits.join("");
@@ -131,27 +136,39 @@ export default function Signup() {
       setError("Enter the complete 6-digit code.");
       return;
     }
-    setStep(3);
-    setResendTimer(RESEND_SECONDS);
-  }
-
-  function handleVerifyPhone(e) {
-    e.preventDefault();
-    setError(null);
-    const code = phoneDigits.join("");
-    if (code.length !== 6) {
-      setError("Enter the complete 6-digit OTP.");
-      return;
+    setLoading(true);
+    try {
+      const res = await api.post("/auth/verify-signup", {
+        name,
+        email,
+        phone,
+        password,
+        otp: code,
+      });
+      window.localStorage.setItem("token", res.data.token);
+      window.localStorage.setItem("role", res.data.user?.role || "CUSTOMER");
+      window.localStorage.setItem("userName", res.data.user?.name || "");
+      window.localStorage.setItem("userEmail", res.data.user?.email || "");
+      setStep(3);
+    } catch (err) {
+      setError(extractErrorMessage(err, "Invalid or expired code."));
+    } finally {
+      setLoading(false);
     }
-    setStep(4);
   }
 
   function handleGoogleSignup() {
-    setError("Google signup isn't set up yet.");
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   }
 
-  function resendCode() {
-    setResendTimer(RESEND_SECONDS);
+  async function resendCode() {
+    setError(null);
+    try {
+      await api.post("/auth/send-otp", { email });
+      setResendTimer(RESEND_SECONDS);
+    } catch (err) {
+      setError(extractErrorMessage(err, "Could not resend code."));
+    }
   }
 
   return (
@@ -350,9 +367,10 @@ export default function Signup() {
             )}
             <button
               type="submit"
-              className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+              disabled={loading}
+              className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              Verify Email
+              {loading ? "Verifying..." : "Verify Email"}
             </button>
             <p className="text-sm text-neutral-500 text-center">
               Didn't receive the code?{" "}
@@ -375,51 +393,6 @@ export default function Signup() {
       )}
 
       {step === 3 && (
-        <>
-          <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
-            Verify your phone
-          </h1>
-          <p className="text-sm text-neutral-500 text-center mb-6">
-            We sent a 6-digit OTP to
-            <br />
-            <span className="text-ink">{maskPhone(phone)}</span>
-          </p>
-          <form onSubmit={handleVerifyPhone} className="flex flex-col gap-4">
-            <OtpInput
-              digits={phoneDigits}
-              setDigits={setPhoneDigits}
-              refs={phoneRefs}
-            />
-            {error && (
-              <p className="text-red-600 text-sm text-center">{error}</p>
-            )}
-            <button
-              type="submit"
-              className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-            >
-              Verify Phone
-            </button>
-            <p className="text-sm text-neutral-500 text-center">
-              Didn't receive the OTP?{" "}
-              {resendTimer > 0 ? (
-                <span className="text-neutral-400">
-                  Resend in {resendTimer}s
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={resendCode}
-                  className="text-spine underline"
-                >
-                  Resend OTP
-                </button>
-              )}
-            </p>
-          </form>
-        </>
-      )}
-
-      {step === 4 && (
         <div className="text-center">
           <div className="text-4xl mb-4">✓</div>
           <h1 className="font-serif text-3xl font-semibold text-ink mb-2">

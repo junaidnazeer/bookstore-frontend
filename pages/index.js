@@ -10,11 +10,36 @@ import {
   Truck,
   ShieldCheck,
   Package,
-  Headphones,
   Heart,
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
+
+// Order matches the requested 2-column row pairing:
+// Row1: Books/Attars, Row2: Caps/Abayas, Row3: Shalwar Kameez/Jilbabs, Row4: Prayer & Quran Accessories
+const CATEGORIES = [
+  { slug: "books", label: "Books" },
+  { slug: "attars", label: "Attars" },
+  { slug: "caps", label: "Caps" },
+  { slug: "abayas", label: "Abayas" },
+  { slug: "shalwar-kameez", label: "Shalwar Kameez" },
+  { slug: "jilbabs", label: "Jilbabs" },
+  { slug: "prayer-quran-accessories", label: "Prayer & Quran Accessories" },
+];
+
+const CATEGORY_IMAGE_URLS = {
+  books: "https://images.pexels.com/photos/31679271/pexels-photo-31679271.jpeg",
+  attars: "https://images.unsplash.com/photo-1612784642053-15614e602ed7",
+  caps: "https://images.pexels.com/photos/3068176/pexels-photo-3068176.jpeg",
+  "shalwar-kameez":
+    "https://images.pexels.com/photos/8692253/pexels-photo-8692253.jpeg",
+  abayas:
+    "https://images.pexels.com/photos/32279501/pexels-photo-32279501.jpeg",
+  jilbabs:
+    "https://images.pexels.com/photos/20841544/pexels-photo-20841544.jpeg",
+  "prayer-quran-accessories":
+    "https://images.pexels.com/photos/11663268/pexels-photo-11663268.jpeg",
+};
 
 function FacebookIcon({ size = 18 }) {
   return (
@@ -59,36 +84,59 @@ function YoutubeIcon({ size = 18 }) {
   );
 }
 
-const CATEGORIES = [
-  { slug: "books", label: "Books" },
-  { slug: "attars", label: "Attars" },
-  { slug: "caps", label: "Caps" },
-  { slug: "shalwar-kameez", label: "Shalwar Kameez" },
-  { slug: "abayas", label: "Abayas" },
-  { slug: "jilbabs", label: "Jilbabs" },
-  { slug: "prayer-quran-accessories", label: "Prayer & Quran Accessories" },
-];
+// Subtle repeating arch/dome motif, drawn as original SVG (not copied
+// from any reference), low opacity, sitting behind all page content.
+function IslamicPatternBackground() {
+  return (
+    <svg
+      className="fixed inset-0 w-full h-full opacity-[0.05] pointer-events-none -z-10"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <defs>
+        <pattern
+          id="homeArches"
+          x="0"
+          y="0"
+          width="70"
+          height="70"
+          patternUnits="userSpaceOnUse"
+        >
+          <path
+            d="M8 55 Q8 25 35 25 Q62 25 62 55"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+          />
+        </pattern>
+      </defs>
+      <rect
+        width="100%"
+        height="100%"
+        fill="url(#homeArches)"
+        className="text-spine"
+      />
+    </svg>
+  );
+}
 
-const CATEGORY_IMAGE_URLS = {
-  books: "https://images.pexels.com/photos/31679271/pexels-photo-31679271.jpeg",
-  attars: "https://images.unsplash.com/photo-1612784642053-15614e602ed7",
-  caps: "https://images.pexels.com/photos/3068176/pexels-photo-3068176.jpeg",
-  "shalwar-kameez":
-    "https://images.pexels.com/photos/8692253/pexels-photo-8692253.jpeg",
-  abayas:
-    "https://images.pexels.com/photos/32279501/pexels-photo-32279501.jpeg",
-  jilbabs:
-    "https://images.pexels.com/photos/20841544/pexels-photo-20841544.jpeg",
-  "prayer-quran-accessories":
-    "https://images.pexels.com/photos/11663268/pexels-photo-11663268.jpeg",
-};
+function HorizontalProductRow({ products, addItem }) {
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+      {products.map((p) => (
+        <div key={p.id} className="w-36 flex-shrink-0">
+          <ProductTile product={p} addItem={addItem} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function ProductTile({ product, addItem }) {
   const { toggleWishlist, isWishlisted } = useWishlist();
   const wishlisted = isWishlisted(product.id);
 
   return (
-    <div className="border border-neutral-200 rounded-lg bg-white p-3 flex flex-col relative">
+    <div className="border border-neutral-200 rounded-lg bg-white p-3 flex flex-col relative h-full">
       <button
         onClick={() => toggleWishlist(product)}
         className="absolute top-4 right-4 z-10 bg-white/90 rounded-full p-1.5"
@@ -101,7 +149,7 @@ function ProductTile({ product, addItem }) {
           }
         />
       </button>
-      <Link href={`/products/${product.id}`}>
+      <Link href={`/products/${product.slug}`}>
         <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden mb-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -149,11 +197,20 @@ function FooterAccordion({ title, children }) {
 export default function Home() {
   const { addItem } = useCart();
   const [products, setProducts] = useState([]);
+  const [counts, setCounts] = useState({});
 
   useEffect(() => {
     api
       .get("/products")
-      .then((res) => setProducts(res.data.map(normalizeProduct)))
+      .then((res) => {
+        const list = res.data.map(normalizeProduct);
+        setProducts(list);
+        const tally = {};
+        list.forEach((p) => {
+          tally[p.category] = (tally[p.category] || 0) + 1;
+        });
+        setCounts(tally);
+      })
       .catch(() => setProducts([]));
   }, []);
 
@@ -161,46 +218,35 @@ export default function Home() {
     products.find((p) => p.category === c.slug),
   ).filter(Boolean);
 
-  return (
-    <div>
-      <Navbar />
+  const newArrivals = [...products]
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .slice(0, 6);
 
-      {/* Category icon scroller */}
-      <div className="max-w-6xl mx-auto border-b border-neutral-100">
-        <div className="flex gap-4 overflow-x-auto px-6 py-4">
-          {CATEGORIES.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/products?category=${c.slug}`}
-              className="flex flex-col items-center gap-1 flex-shrink-0 w-16"
-            >
-              <div className="w-14 h-14 rounded-full bg-neutral-100 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={CATEGORY_IMAGE_URLS[c.slug]}
-                  alt={c.label}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <span className="text-[11px] text-ink text-center leading-tight">
-                {c.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </div>
+  return (
+    <div className="relative" style={{ backgroundColor: "#F3ECDD" }}>
+      <IslamicPatternBackground />
+      <Navbar />
 
       {/* Hero */}
       <section
-        className="relative w-full h-[360px] md:h-[420px] bg-cover"
+        className="relative w-full h-[360px] md:h-[420px] bg-cover rounded-lg overflow-hidden mx-4 mt-4 max-w-6xl md:mx-auto"
         style={{
           backgroundImage:
             "url('https://images.pexels.com/photos/37697015/pexels-photo-37697015.jpeg')",
           backgroundPosition: "center 30%",
         }}
       >
-        <div className="absolute inset-0 bg-paper/50" />
-        <div className="absolute inset-0 bg-gradient-to-r from-paper via-paper/70 to-transparent" />
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: "rgba(243,236,221,0.5)" }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to right, #F3ECDD, rgba(243,236,221,0.7), transparent)",
+          }}
+        />
         <div className="relative max-w-6xl mx-auto px-6 h-full flex items-center">
           <div className="max-w-md">
             <p className="text-xs uppercase tracking-wide text-neutral-500 mb-2">
@@ -231,25 +277,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Shop by category - list style */}
-      <section className="max-w-6xl mx-auto px-6 py-8">
+      {/* Shop by category - always 2 columns, exact row pairing via array order */}
+      <section className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif text-xl text-ink">Shop by Category</h2>
           <Link
-            href="/products"
+            href="/categories"
             className="text-sm text-spine flex items-center gap-1"
           >
             View All <ChevronRight size={14} />
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {CATEGORIES.map((c) => (
             <Link
               key={c.slug}
               href={`/products?category=${c.slug}`}
-              className="flex items-center gap-3 border border-neutral-200 rounded-lg bg-white p-3 hover:shadow-sm transition-shadow"
+              className="flex items-center gap-2 border border-neutral-200 rounded-lg bg-white p-2.5 hover:shadow-sm transition-shadow"
             >
-              <div className="w-12 h-12 rounded overflow-hidden flex-shrink-0">
+              <div className="w-11 h-11 rounded-lg overflow-hidden flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={CATEGORY_IMAGE_URLS[c.slug]}
@@ -257,16 +303,26 @@ export default function Home() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <span className="flex-1 text-ink font-medium">{c.label}</span>
-              <ChevronRight size={16} className="text-neutral-300" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-ink text-sm truncate">
+                  {c.label}
+                </p>
+                <p className="text-xs text-neutral-400">
+                  {counts[c.slug] || 0} product{counts[c.slug] === 1 ? "" : "s"}
+                </p>
+              </div>
+              <ChevronRight
+                size={14}
+                className="text-neutral-300 flex-shrink-0"
+              />
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Featured collection */}
+      {/* Featured collection - horizontal scroll */}
       {featured.length > 0 && (
-        <section className="max-w-6xl mx-auto px-6 py-8">
+        <section className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-serif text-xl text-ink">Featured Collection</h2>
             <Link
@@ -276,27 +332,41 @@ export default function Home() {
               View All <ChevronRight size={14} />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            {featured.map((p) => (
-              <ProductTile key={p.id} product={p} addItem={addItem} />
-            ))}
-          </div>
+          <HorizontalProductRow products={featured} addItem={addItem} />
         </section>
       )}
 
-      {/* Mid-page banner */}
-      <section className="max-w-6xl mx-auto px-6 py-6">
+      {/* New arrivals - horizontal scroll */}
+      {newArrivals.length > 0 && (
+        <section className="max-w-6xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-serif text-xl text-ink">New Arrivals</h2>
+            <Link
+              href="/products"
+              className="text-sm text-spine flex items-center gap-1"
+            >
+              View All <ChevronRight size={14} />
+            </Link>
+          </div>
+          <HorizontalProductRow products={newArrivals} addItem={addItem} />
+        </section>
+      )}
+
+      {/* Build Your Islamic Library banner */}
+      <section className="max-w-6xl mx-auto px-4 py-6">
         <div className="bg-white border border-neutral-200 rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-4 overflow-hidden">
           <div>
-            <h2 className="font-serif text-2xl text-ink mb-2">
-              Build Your Islamic Library
+            <h2 className="font-serif text-2xl text-ink mb-2 leading-tight">
+              Build Your
+              <br />
+              Islamic Library
             </h2>
-            <p className="text-neutral-500">
+            <p className="text-neutral-500 text-sm">
               Timeless knowledge for a better tomorrow.
             </p>
             <Link
               href="/products?category=books"
-              className="inline-block mt-4 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity"
+              className="inline-block mt-4 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity text-sm"
             >
               Explore Books →
             </Link>
@@ -305,11 +375,13 @@ export default function Home() {
       </section>
 
       {/* Why shop with us */}
-      <section className="max-w-6xl mx-auto px-6 py-8">
+      <section className="max-w-6xl mx-auto px-4 py-8">
         <h2 className="font-serif text-xl text-ink mb-4">Why Shop With Us</h2>
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-start gap-3 bg-neutral-50 rounded-lg p-4">
-            <Truck className="text-spine flex-shrink-0" />
+          <div className="flex items-start gap-3 bg-white rounded-lg p-4 border border-neutral-100">
+            <div className="w-8 h-8 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
+              <Truck size={16} className="text-spine" />
+            </div>
             <div>
               <p className="text-sm font-medium text-ink">Reliable Delivery</p>
               <p className="text-xs text-neutral-500">
@@ -317,8 +389,10 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 bg-neutral-50 rounded-lg p-4">
-            <ShieldCheck className="text-spine flex-shrink-0" />
+          <div className="flex items-start gap-3 bg-white rounded-lg p-4 border border-neutral-100">
+            <div className="w-8 h-8 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck size={16} className="text-spine" />
+            </div>
             <div>
               <p className="text-sm font-medium text-ink">Secure Payments</p>
               <p className="text-xs text-neutral-500">
@@ -326,8 +400,10 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 bg-neutral-50 rounded-lg p-4">
-            <ShieldCheck className="text-spine flex-shrink-0" />
+          <div className="flex items-start gap-3 bg-white rounded-lg p-4 border border-neutral-100">
+            <div className="w-8 h-8 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck size={16} className="text-spine" />
+            </div>
             <div>
               <p className="text-sm font-medium text-ink">Authentic Products</p>
               <p className="text-xs text-neutral-500">
@@ -335,8 +411,10 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 bg-neutral-50 rounded-lg p-4">
-            <Package className="text-spine flex-shrink-0" />
+          <div className="flex items-start gap-3 bg-white rounded-lg p-4 border border-neutral-100">
+            <div className="w-8 h-8 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
+              <Package size={16} className="text-spine" />
+            </div>
             <div>
               <p className="text-sm font-medium text-ink">Easy Returns</p>
               <p className="text-xs text-neutral-500">
@@ -346,8 +424,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
       {/* Footer */}
-      <footer className="bg-spine text-white">
+      <footer className="bg-spine text-white relative z-10">
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex items-center gap-2 mb-2">
             <MosqueIcon size={28} className="text-white" />
@@ -373,6 +452,9 @@ export default function Home() {
             <Link href="/" className="block">
               Home
             </Link>
+            <Link href="/categories" className="block">
+              Categories
+            </Link>
             {CATEGORIES.map((c) => (
               <Link
                 key={c.slug}
@@ -382,6 +464,9 @@ export default function Home() {
                 {c.label}
               </Link>
             ))}
+            <Link href="/products" className="block">
+              New Arrivals
+            </Link>
           </FooterAccordion>
 
           <FooterAccordion title="Customer Care">

@@ -18,7 +18,7 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.post("/auth/login", { email, password });
-            window.localStorage.setItem("token", res.data.token);
+      window.localStorage.setItem("token", res.data.token);
       window.localStorage.setItem("role", res.data.user?.role || "CUSTOMER");
       window.localStorage.setItem("userName", res.data.user?.name || "");
       window.localStorage.setItem("userEmail", res.data.user?.email || "");
@@ -33,9 +33,8 @@ export default function Login() {
       setLoading(false);
     }
   }
-
   function handleGoogleLogin() {
-    setError("Google login isn't set up yet.");
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   }
 
   return (

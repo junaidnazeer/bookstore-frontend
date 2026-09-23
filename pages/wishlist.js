@@ -42,7 +42,7 @@ export default function Wishlist() {
                 >
                   <HeartOff size={16} className="text-red-500" />
                 </button>
-                <Link href={`/products/${product.id}`}>
+                <Link href={`/products/${product.slug}`}>
                   <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden mb-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img

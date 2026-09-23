@@ -24,22 +24,17 @@ export default function Checkout() {
     return sum + (item.originalPrice - item.price) * item.quantity;
   }, 0);
 
-  const shippingAddress = {
-    fullName,
-    phone,
-    addressLine,
-    city,
-    state,
-    pincode,
-  };
+  // Backend expects the shipping address as a single formatted string, not an object.
+  const shippingAddress = `${fullName}, ${addressLine}, ${city}, ${state} - ${pincode}, Phone: ${phone}`;
 
   const cartItems = items.map((i) => ({
     productId: i.id,
     quantity: i.quantity,
-    size: i.size || null,
-    color: i.color || null,
+    variantInfo: {
+      size: i.size || null,
+      color: i.color || null,
+    },
   }));
-
   async function handlePlaceOrder(e) {
     e.preventDefault();
     setError(null);
@@ -72,7 +67,7 @@ export default function Checkout() {
               shippingAddress,
             });
             clearCart();
-            router.push(`/order-confirmation?orderId=${result.data.orderId}`);
+            router.push(`/order-confirmation?orderId=${result.data.id}`);
           } catch (err) {
             setError(
               "Payment succeeded but we couldn't confirm your order. Please contact support.",
