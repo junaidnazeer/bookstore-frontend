@@ -56,8 +56,13 @@ export default function OrderConfirmation() {
                 <div key={i} className="flex justify-between text-sm">
                   <span className="text-neutral-600">
                     {item.name || item.productName}
-                    {item.size ? ` (${item.size})` : ""}
-                    {item.color ? ` - ${item.color}` : ""} × {item.quantity}
+                    {item.variantInfo?.size
+                      ? ` (${item.variantInfo.size})`
+                      : ""}
+                    {item.variantInfo?.color
+                      ? ` - ${item.variantInfo.color}`
+                      : ""}{" "}
+                    × {item.quantity}
                   </span>
                   <span className="text-ink">
                     ₹{(item.price || 0) * item.quantity}
@@ -78,14 +83,7 @@ export default function OrderConfirmation() {
                 <h2 className="font-medium text-ink mb-2">
                   Delivery information
                 </h2>
-                <p className="text-sm text-neutral-600">
-                  {address.fullName}
-                  <br />
-                  {address.addressLine}, {address.city}, {address.state} -{" "}
-                  {address.pincode}
-                  <br />
-                  Phone: {address.phone}
-                </p>
+                <p className="text-sm text-neutral-600">{address}</p>
               </>
             )}
           </div>

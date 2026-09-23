@@ -34,7 +34,9 @@ export default function OrderDetail() {
     return (
       <div>
         <Navbar />
-        <p className="max-w-2xl mx-auto px-6 py-10 text-neutral-400">Loading...</p>
+        <p className="max-w-2xl mx-auto px-6 py-10 text-neutral-400">
+          Loading...
+        </p>
       </div>
     );
   }
@@ -68,7 +70,9 @@ export default function OrderDetail() {
               <div key={step} className="flex items-center flex-1">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${
-                    i <= currentStepIndex ? "bg-spine text-white" : "bg-neutral-200 text-neutral-400"
+                    i <= currentStepIndex
+                      ? "bg-spine text-white"
+                      : "bg-neutral-200 text-neutral-400"
                   }`}
                 >
                   {i + 1}
@@ -92,17 +96,24 @@ export default function OrderDetail() {
               <div key={i} className="flex justify-between text-sm">
                 <span className="text-neutral-600">
                   {item.name || item.productName}
-                  {item.size ? ` (${item.size})` : ""}
-                  {item.color ? ` - ${item.color}` : ""} × {item.quantity}
+                  {item.variantInfo?.size ? ` (${item.variantInfo.size})` : ""}
+                  {item.variantInfo?.color
+                    ? ` - ${item.variantInfo.color}`
+                    : ""}{" "}
+                  × {item.quantity}
                 </span>
-                <span className="text-ink">₹{(item.price || 0) * item.quantity}</span>
+                <span className="text-ink">
+                  ₹{(item.price || 0) * item.quantity}
+                </span>
               </div>
             ))}
           </div>
           {(order.totalAmount ?? order.total) != null && (
             <div className="flex justify-between font-medium pt-3 mt-3 border-t border-neutral-200">
               <span>Total</span>
-              <span className="text-brass">₹{order.totalAmount ?? order.total}</span>
+              <span className="text-brass">
+                ₹{order.totalAmount ?? order.total}
+              </span>
             </div>
           )}
         </div>
@@ -110,13 +121,7 @@ export default function OrderDetail() {
         {address && (
           <div className="border border-neutral-200 rounded-lg p-5">
             <h2 className="font-medium text-ink mb-2">Shipping Address</h2>
-            <p className="text-sm text-neutral-600">
-              {address.fullName}
-              <br />
-              {address.addressLine}, {address.city}, {address.state} - {address.pincode}
-              <br />
-              Phone: {address.phone}
-            </p>
+            <p className="text-sm text-neutral-600">{address}</p>
           </div>
         )}
       </main>
