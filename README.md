@@ -3,6 +3,7 @@
 Next.js (Pages Router) + Tailwind CSS frontend for the bookstore project.
 
 ## Stack
+
 - Next.js (Pages Router)
 - Tailwind CSS
 - Axios for API calls
@@ -10,11 +11,13 @@ Next.js (Pages Router) + Tailwind CSS frontend for the bookstore project.
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Copy `.env.example` to `.env.local` and fill in real values:
+
    ```bash
    cp .env.example .env.local
    ```
@@ -42,16 +45,19 @@ styles/         global Tailwind styles
 
 ## Backend
 
-This frontend expects the backend API described in `API_CONTRACT.md`
-(shared doc) to be running at the URL set in `NEXT_PUBLIC_API_URL`.
-See the `bookstore-backend` repo, owned by Murtaza Badam.
+This frontend expects the backend API described in `API_REFERENCE.md`
+(in the `bookstore-backend` repo) to be running at the URL set in
+`NEXT_PUBLIC_API_URL`. See the `bookstore-backend` repo, owned by
+Murtaza Badam.
 
 ## Git identity
 
 Before committing, confirm your git identity is set correctly on this
 machine:
+
 ```bash
 git config user.name
 git config user.email
 ```
+
 Should show your own name and email — not a shared or default account.
