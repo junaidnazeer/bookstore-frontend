@@ -132,7 +132,7 @@ export default function Account() {
             icon={User}
             label="Account Details"
             sublabel={userEmail || "No email on file"}
-            href="#"
+            href="/account-details"
           />
           <AccountRow
             icon={Settings}
