@@ -81,6 +81,12 @@ export default function AccountDetails() {
       setPasswordError("Enter both your current and new password.");
       return;
     }
+    if (currentPassword === newPassword) {
+      setPasswordError(
+        "New password must be different from your current password.",
+      );
+      return;
+    }
     setPasswordLoading(true);
     try {
       await api.put("/auth/me", { currentPassword, newPassword });
@@ -218,6 +224,7 @@ export default function AccountDetails() {
               <Lock size={16} className="text-neutral-400 flex-shrink-0" />
               <input
                 type={showCurrent ? "text" : "password"}
+                autoComplete="current-password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="flex-1 px-2 py-2 outline-none text-sm"
@@ -240,6 +247,7 @@ export default function AccountDetails() {
               <Lock size={16} className="text-neutral-400 flex-shrink-0" />
               <input
                 type={showNew ? "text" : "password"}
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="flex-1 px-2 py-2 outline-none text-sm"

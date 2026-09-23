@@ -68,6 +68,7 @@ function OtpInput({ digits, setDigits, refs }) {
           type="text"
           inputMode="numeric"
           maxLength={1}
+          autoComplete="one-time-code"
           value={digit}
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
@@ -78,9 +79,10 @@ function OtpInput({ digits, setDigits, refs }) {
   );
 }
 
+// Steps: 1 = enter email, 2 = enter code, 3 = enter new password, 4 = success
 export default function ForgotPassword() {
   const router = useRouter();
-  const [step, setStep] = useState(1); // 1: email, 2: code + new password, 3: success
+  const [step, setStep] = useState(1);
 
   const [email, setEmail] = useState("");
   const [codeDigits, setCodeDigits] = useState(["", "", "", "", "", ""]);
@@ -129,7 +131,7 @@ export default function ForgotPassword() {
     }
   }
 
-  async function handleResetPassword(e) {
+  function handleContinueFromCode(e) {
     e.preventDefault();
     setError(null);
     const code = codeDigits.join("");
@@ -137,6 +139,16 @@ export default function ForgotPassword() {
       setError("Enter the complete 6-digit code.");
       return;
     }
+    // Note: the backend has no separate "verify code" endpoint — the code is
+    // only actually checked when /auth/reset-password is called on the next
+    // step. If it's wrong, the error will surface there instead of here.
+    setStep(3);
+  }
+
+  async function handleResetPassword(e) {
+    e.preventDefault();
+    setError(null);
+    const code = codeDigits.join("");
     if (!isPasswordValid(newPassword)) {
       setError(getPasswordErrorMessage(newPassword));
       return;
@@ -152,7 +164,7 @@ export default function ForgotPassword() {
         otp: code,
         newPassword,
       });
-      setStep(3);
+      setStep(4);
     } catch (err) {
       setError(extractErrorMessage(err, "Invalid or expired code."));
     } finally {
@@ -180,6 +192,7 @@ export default function ForgotPassword() {
                 <Mail size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type="email"
+                  autoComplete="email"
                   placeholder="Enter your email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -212,20 +225,63 @@ export default function ForgotPassword() {
       {step === 2 && (
         <>
           <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
-            Reset your password
+            Enter the code
           </h1>
           <p className="text-sm text-neutral-500 text-center mb-6">
             We sent a 6-digit code to
             <br />
             <span className="text-ink">{maskEmail(email)}</span>
           </p>
-          <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
+          <form
+            onSubmit={handleContinueFromCode}
+            className="flex flex-col gap-4"
+          >
             <OtpInput
               digits={codeDigits}
               setDigits={setCodeDigits}
               refs={codeRefs}
             />
 
+            {error && (
+              <p className="text-red-600 text-sm text-center">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              className="px-5 py-3 bg-spine text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+            >
+              Continue
+            </button>
+
+            <p className="text-sm text-neutral-500 text-center">
+              Didn't receive the code?{" "}
+              {resendTimer > 0 ? (
+                <span className="text-neutral-400">
+                  Resend in {resendTimer}s
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resendCode}
+                  className="text-spine underline"
+                >
+                  Resend Code
+                </button>
+              )}
+            </p>
+          </form>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <h1 className="font-serif text-3xl font-semibold text-ink text-center mb-1">
+            Set a new password
+          </h1>
+          <p className="text-sm text-neutral-500 text-center mb-6">
+            Choose a new password for your account
+          </p>
+          <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
             <div>
               <label className="text-sm text-neutral-600 mb-1 block">
                 New Password
@@ -234,6 +290,7 @@ export default function ForgotPassword() {
                 <Lock size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   placeholder="Enter new password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -268,6 +325,7 @@ export default function ForgotPassword() {
                 <Lock size={16} className="text-neutral-400 flex-shrink-0" />
                 <input
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -288,28 +346,11 @@ export default function ForgotPassword() {
             >
               {loading ? "Resetting..." : "Reset Password"}
             </button>
-
-            <p className="text-sm text-neutral-500 text-center">
-              Didn't receive the code?{" "}
-              {resendTimer > 0 ? (
-                <span className="text-neutral-400">
-                  Resend in {resendTimer}s
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={resendCode}
-                  className="text-spine underline"
-                >
-                  Resend Code
-                </button>
-              )}
-            </p>
           </form>
         </>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <div className="text-center">
           <div className="text-4xl mb-4">✓</div>
           <h1 className="font-serif text-3xl font-semibold text-ink mb-2">
