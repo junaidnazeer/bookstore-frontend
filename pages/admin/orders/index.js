@@ -17,6 +17,8 @@ export default function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
+  const [shipModalOrder, setShipModalOrder] = useState(null);
+  const [trackingInput, setTrackingInput] = useState("");
 
   function loadOrders() {
     setLoading(true);
@@ -31,18 +33,47 @@ export default function AdminOrders() {
     loadOrders();
   }, []);
 
-  async function handleStatusChange(order, newStatus) {
+  async function submitStatusUpdate(order, newStatus, trackingNumber) {
     setUpdatingId(order.id);
     try {
-      await api.put(`/admin/orders/${order.id}`, { status: newStatus });
+      const body = { status: newStatus };
+      if (trackingNumber) body.trackingNumber = trackingNumber;
+      await api.put(`/admin/orders/${order.id}`, body);
       setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: newStatus } : o)),
+        prev.map((o) =>
+          o.id === order.id
+            ? {
+                ...o,
+                status: newStatus,
+                ...(trackingNumber ? { trackingNumber } : {}),
+              }
+            : o,
+        ),
       );
     } catch (err) {
       alert("Could not update order status. Try again.");
     } finally {
       setUpdatingId(null);
     }
+  }
+
+  function handleStatusChange(order, newStatus) {
+    if (newStatus === "SHIPPED") {
+      setTrackingInput(order.trackingNumber || "");
+      setShipModalOrder(order);
+      return;
+    }
+    submitStatusUpdate(order, newStatus);
+  }
+
+  function confirmShipModal() {
+    if (!trackingInput.trim()) {
+      alert("Enter a tracking number to mark this order as shipped.");
+      return;
+    }
+    submitStatusUpdate(shipModalOrder, "SHIPPED", trackingInput.trim());
+    setShipModalOrder(null);
+    setTrackingInput("");
   }
 
   const filtered = orders.filter((o) => {
@@ -138,6 +169,45 @@ export default function AdminOrders() {
           </table>
         )}
       </div>
+
+      {shipModalOrder && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+            <h2 className="font-medium text-ink mb-1">
+              Mark #{shipModalOrder.orderNumber || shipModalOrder.id} as Shipped
+            </h2>
+            <p className="text-sm text-neutral-500 mb-4">
+              Enter the India Post tracking number for this order.
+            </p>
+            <input
+              type="text"
+              autoFocus
+              placeholder="e.g. RXXXXXXXXXIN"
+              value={trackingInput}
+              onChange={(e) => setTrackingInput(e.target.value)}
+              className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm outline-none mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShipModalOrder(null);
+                  setTrackingInput("");
+                }}
+                className="px-4 py-2 text-sm rounded-lg border border-neutral-300 hover:bg-neutral-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmShipModal}
+                disabled={updatingId === shipModalOrder.id}
+                className="px-4 py-2 text-sm rounded-lg bg-spine text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {updatingId === shipModalOrder.id ? "Saving..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

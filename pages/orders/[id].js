@@ -119,9 +119,33 @@ export default function OrderDetail() {
         </div>
 
         {address && (
-          <div className="border border-neutral-200 rounded-lg p-5">
+          <div className="border border-neutral-200 rounded-lg p-5 mb-4">
             <h2 className="font-medium text-ink mb-2">Shipping Address</h2>
             <p className="text-sm text-neutral-600">{address}</p>
+          </div>
+        )}
+
+        {order.trackingNumber && (
+          <div className="border border-neutral-200 rounded-lg p-5">
+            <h2 className="font-medium text-ink mb-2">Tracking</h2>
+            <p className="text-sm text-neutral-600 mb-3">
+              Tracking Number:{" "}
+              <span className="text-ink font-medium">
+                {order.trackingNumber}
+              </span>
+            </p>
+            <a
+              href="https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-spine text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              Track Package
+            </a>
+            <p className="text-xs text-neutral-400 mt-2">
+              Paste the tracking number above into India Post's site to see live
+              status.
+            </p>
           </div>
         )}
       </main>

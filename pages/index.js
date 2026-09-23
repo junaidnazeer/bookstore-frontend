@@ -162,7 +162,7 @@ function ProductTile({ product, addItem }) {
           {product.name}
         </h3>
       </Link>
-      <p className="text-brass font-semibold mt-1">₹{product.price}</p>
+      <p className="text-spine font-semibold mt-1">₹{product.price}</p>
       <button
         onClick={() => addItem(product)}
         className="mt-2 px-3 py-1.5 bg-spine text-white text-sm rounded hover:opacity-90 transition-opacity"
@@ -229,7 +229,7 @@ export default function Home() {
 
       {/* Hero */}
       <section
-        className="relative w-full h-[360px] md:h-[420px] bg-cover rounded-lg overflow-hidden mx-4 mt-4 max-w-6xl md:mx-auto"
+        className="relative w-full h-[360px] md:h-[420px] bg-cover rounded-2xl overflow-hidden mx-4 mt-4 max-w-6xl md:mx-auto"
         style={{
           backgroundImage:
             "url('https://images.pexels.com/photos/37697015/pexels-photo-37697015.jpeg')",
@@ -289,13 +289,15 @@ export default function Home() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {CATEGORIES.map((c) => (
+          {CATEGORIES.map((c, i) => (
             <Link
               key={c.slug}
               href={`/products?category=${c.slug}`}
-              className="flex items-center gap-2 border border-neutral-200 rounded-lg bg-white p-2.5 hover:shadow-sm transition-shadow"
+              className={`flex items-center gap-3 border border-neutral-200 rounded-xl bg-white p-3 shadow-sm hover:shadow-md transition-shadow ${
+                i === CATEGORIES.length - 1 ? "col-span-2" : ""
+              }`}
             >
-              <div className="w-11 h-11 rounded-lg overflow-hidden flex-shrink-0">
+              <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={CATEGORY_IMAGE_URLS[c.slug]}
@@ -312,7 +314,7 @@ export default function Home() {
                 </p>
               </div>
               <ChevronRight
-                size={14}
+                size={16}
                 className="text-neutral-300 flex-shrink-0"
               />
             </Link>
@@ -354,19 +356,32 @@ export default function Home() {
 
       {/* Build Your Islamic Library banner */}
       <section className="max-w-6xl mx-auto px-4 py-6">
-        <div className="bg-white border border-neutral-200 rounded-lg p-6 flex flex-col md:flex-row items-center justify-between gap-4 overflow-hidden">
-          <div>
-            <h2 className="font-serif text-2xl text-ink mb-2 leading-tight">
+        <div
+          className="relative rounded-2xl overflow-hidden bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url('https://images.pexels.com/photos/159866/books-book-pages-read-literature-159866.jpeg')",
+          }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to right, #F3ECDD 40%, rgba(243,236,221,0.55) 70%, transparent)",
+            }}
+          />
+          <div className="relative p-6 md:p-8 max-w-xs">
+            <h2 className="font-serif text-2xl text-spine mb-2 leading-tight font-semibold">
               Build Your
               <br />
               Islamic Library
             </h2>
-            <p className="text-neutral-500 text-sm">
+            <p className="text-neutral-600 text-sm mb-4">
               Timeless knowledge for a better tomorrow.
             </p>
             <Link
               href="/products?category=books"
-              className="inline-block mt-4 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity text-sm"
+              className="inline-block px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity text-sm"
             >
               Explore Books →
             </Link>
@@ -378,49 +393,65 @@ export default function Home() {
       <section className="max-w-6xl mx-auto px-4 py-8">
         <h2 className="font-serif text-xl text-ink mb-4">Why Shop With Us</h2>
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-start gap-3 bg-white rounded-lg p-4 border border-neutral-100">
-            <div className="w-8 h-8 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
               <Truck size={16} className="text-spine" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-ink">Reliable Delivery</p>
               <p className="text-xs text-neutral-500">
                 Safe & timely delivery across India
               </p>
             </div>
+            <ChevronRight
+              size={14}
+              className="text-neutral-300 flex-shrink-0"
+            />
           </div>
-          <div className="flex items-start gap-3 bg-white rounded-lg p-4 border border-neutral-100">
-            <div className="w-8 h-8 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
               <ShieldCheck size={16} className="text-spine" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-ink">Secure Payments</p>
               <p className="text-xs text-neutral-500">
                 Multiple secure payment options
               </p>
             </div>
+            <ChevronRight
+              size={14}
+              className="text-neutral-300 flex-shrink-0"
+            />
           </div>
-          <div className="flex items-start gap-3 bg-white rounded-lg p-4 border border-neutral-100">
-            <div className="w-8 h-8 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
               <ShieldCheck size={16} className="text-spine" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-ink">Authentic Products</p>
               <p className="text-xs text-neutral-500">
                 100% genuine & handpicked items
               </p>
             </div>
+            <ChevronRight
+              size={14}
+              className="text-neutral-300 flex-shrink-0"
+            />
           </div>
-          <div className="flex items-start gap-3 bg-white rounded-lg p-4 border border-neutral-100">
-            <div className="w-8 h-8 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-neutral-100 shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-spine/10 flex items-center justify-center flex-shrink-0">
               <Package size={16} className="text-spine" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-ink">Easy Returns</p>
               <p className="text-xs text-neutral-500">
                 Hassle-free returns & exchanges
               </p>
             </div>
+            <ChevronRight
+              size={14}
+              className="text-neutral-300 flex-shrink-0"
+            />
           </div>
         </div>
       </section>
