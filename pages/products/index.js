@@ -147,11 +147,12 @@ export default function Products() {
   const [subcategory, setSubcategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sort, setSort] = useState("featured");
-  // Bumping this re-runs the fetch effect below — used by the Retry button.
   const [retryCount, setRetryCount] = useState(0);
 
-  // Read category/subcategory/search straight from the URL so links like
-  // /products?category=books&subcategory=Quran and browser back/forward work.
+  // Real subcategories for the current category, from the backend's
+  // dedicated endpoint — not computed from whatever happens to be on screen.
+  const [subcategories, setSubcategories] = useState([]);
+
   useEffect(() => {
     if (!router.isReady) return;
     setCategory(router.query.category || "");
@@ -164,15 +165,32 @@ export default function Products() {
     router.query.search,
   ]);
 
+  // GET /products/subcategories?category=<slug> — returns the distinct
+  // subcategories that actually exist for this category right now, so the
+  // chips always reflect real inventory instead of a hardcoded list. Works
+  // the same way for every category, not just Books.
+  useEffect(() => {
+    if (!category) {
+      setSubcategories([]);
+      return;
+    }
+    api
+      .get(`/products/subcategories?category=${category}`)
+      .then((res) => setSubcategories(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setSubcategories([]));
+  }, [category]);
+
   const fetchProducts = useCallback(() => {
     if (!router.isReady) return;
     setStatus("loading");
-    const query = category ? `?category=${category}` : "";
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (subcategory) params.set("subcategory", subcategory);
+    const query = params.toString() ? `?${params.toString()}` : "";
+
     api
       .get(`/products${query}`)
       .then((res) => {
-        // Guard against a response shape the frontend doesn't expect, rather
-        // than silently rendering nothing.
         if (!Array.isArray(res.data)) {
           throw new Error("Unexpected response shape from /products");
         }
@@ -182,7 +200,7 @@ export default function Products() {
       .catch(() => {
         setStatus("error");
       });
-  }, [category, router.isReady]);
+  }, [category, subcategory, router.isReady]);
 
   useEffect(() => {
     fetchProducts();
@@ -211,19 +229,6 @@ export default function Products() {
   let visibleProducts = searchTerm
     ? products.filter((p) => matchesSearch(p, searchTerm))
     : products;
-
-  // Subcategory chips are computed from whatever the backend actually
-  // returned for this category — for ANY category, not just Books. If a
-  // category's products don't carry a subcategory yet, no chips render.
-  const availableSubcategories = [
-    ...new Set(products.map((p) => p.subcategory).filter(Boolean)),
-  ];
-
-  if (subcategory) {
-    visibleProducts = visibleProducts.filter(
-      (p) => p.subcategory === subcategory,
-    );
-  }
 
   visibleProducts = [...visibleProducts].sort((a, b) => {
     if (sort === "price-low") return a.price - b.price;
@@ -288,9 +293,9 @@ export default function Products() {
           </p>
         )}
 
-        {/* Subcategory chips — appear for ANY category once its products
-            carry a subcategory value. "All" clears the filter. */}
-        {availableSubcategories.length > 0 && (
+        {/* Subcategory chips — from the real backend endpoint, for ANY
+            category once it has products carrying a subcategory. */}
+        {subcategories.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={() => selectSubcategory("")}
@@ -302,7 +307,7 @@ export default function Products() {
             >
               All
             </button>
-            {availableSubcategories.map((sc) => (
+            {subcategories.map((sc) => (
               <button
                 key={sc}
                 onClick={() => selectSubcategory(sc)}
