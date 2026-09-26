@@ -5,7 +5,7 @@ import AuthLayout from "../components/AuthLayout";
 import api from "../lib/api";
 
 function extractErrorMessage(err, fallback) {
-  if (err.response) return err.response.data?.message || fallback;
+  if (err.response) return err.response.data?.error || fallback;
   if (err.request) return "Could not reach the server. Please try again.";
   return fallback;
 }
