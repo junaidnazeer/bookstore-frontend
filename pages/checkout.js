@@ -94,7 +94,7 @@ export default function Checkout() {
     } catch (err) {
       if (err.response) {
         setError(
-          err.response.data?.message ||
+          err.response.data?.error ||
             `Checkout failed (${err.response.status}). Is the backend's /checkout/create-order endpoint ready?`,
         );
       } else if (err.request) {

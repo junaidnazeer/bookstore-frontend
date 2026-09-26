@@ -1,24 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminLayout from "../../../components/admin/AdminLayout";
 import api from "../../../lib/api";
 
-const CATEGORY_OPTIONS = [
-  { value: "", label: "Select category" },
-  { value: "books", label: "Books" },
-  { value: "attars", label: "Attars" },
-  { value: "caps", label: "Caps" },
-  { value: "shalwar-kameez", label: "Shalwar Kameez" },
-  { value: "abayas", label: "Abayas" },
-  { value: "jilbabs", label: "Jilbabs" },
-  { value: "prayer-quran-accessories", label: "Prayer & Quran Accessories" },
-];
-
 export default function NewProduct() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [categoriesError, setCategoriesError] = useState(null);
+  const [subcategory, setSubcategory] = useState("");
   const [price, setPrice] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
   const [stock, setStock] = useState("");
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -26,6 +19,21 @@ export default function NewProduct() {
   const [attributes, setAttributes] = useState([{ key: "", value: "" }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  // The backend requires categoryId (a real database UUID), not a slug —
+  // sending the slug string here previously meant every product creation
+  // attempt failed with categoryId: undefined. Fetch the real categories
+  // so the dropdown always has valid, current IDs.
+  useEffect(() => {
+    api
+      .get("/categories")
+      .then((res) => setCategories(res.data))
+      .catch(() =>
+        setCategoriesError(
+          "Could not load categories. Refresh the page to try again.",
+        ),
+      );
+  }, []);
 
   function handleImageChange(e) {
     const file = e.target.files[0];
@@ -52,7 +60,7 @@ export default function NewProduct() {
     e.preventDefault();
     setError(null);
 
-    if (!name || !category || !price || !stock || !description) {
+    if (!name || !categoryId || !price || !stock || !description) {
       setError("Please fill in all required fields.");
       return;
     }
@@ -76,8 +84,10 @@ export default function NewProduct() {
 
       await api.post("/admin/products", {
         name,
-        category,
+        categoryId,
+        subcategory: subcategory.trim() || null,
         price: parseFloat(price),
+        originalPrice: originalPrice ? parseFloat(originalPrice) : null,
         stock: parseInt(stock, 10),
         description,
         imageUrls: imageUrl ? [imageUrl] : [],
@@ -86,7 +96,11 @@ export default function NewProduct() {
 
       router.push("/admin/products");
     } catch (err) {
-      setError("Could not create product. Check the details and try again.");
+      // Backend returns { error: "..." }, not { message: "..." }.
+      setError(
+        err.response?.data?.error ||
+          "Could not create product. Check the details and try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -126,16 +140,32 @@ export default function NewProduct() {
               Category *
             </label>
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
               className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
             >
-              {CATEGORY_OPTIONS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
+              <option value="">Select category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>
+            {categoriesError && (
+              <p className="text-xs text-red-600 mt-1">{categoriesError}</p>
+            )}
+          </div>
+          <div>
+            <label className="text-sm text-neutral-600 mb-1 block">
+              Subcategory (optional)
+            </label>
+            <input
+              type="text"
+              value={subcategory}
+              onChange={(e) => setSubcategory(e.target.value)}
+              placeholder="e.g. Quran, Hadith"
+              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
+            />
           </div>
           <div>
             <label className="text-sm text-neutral-600 mb-1 block">
@@ -146,6 +176,18 @@ export default function NewProduct() {
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="Enter price"
+              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-neutral-600 mb-1 block">
+              Original Price (optional, for showing a discount)
+            </label>
+            <input
+              type="number"
+              value={originalPrice}
+              onChange={(e) => setOriginalPrice(e.target.value)}
+              placeholder="Leave blank if not on sale"
               className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
             />
           </div>

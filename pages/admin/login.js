@@ -29,7 +29,7 @@ export default function AdminLogin() {
     } catch (err) {
       if (err.response) {
         setError(
-          err.response.data?.message ||
+          err.response.data?.error ||
             `Login failed (${err.response.status}). Check your email and password.`,
         );
       } else if (err.request) {
@@ -45,7 +45,7 @@ export default function AdminLogin() {
   }
 
   function handleGoogleLogin() {
-    setError("Google login isn't set up yet.");
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
   }
 
   return (
