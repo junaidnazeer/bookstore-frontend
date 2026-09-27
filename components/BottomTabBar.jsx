@@ -14,7 +14,7 @@ export default function BottomTabBar() {
   const router = useRouter();
 
   return (
-        <nav
+    <nav
       className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex justify-around pt-2 z-40"
       style={{
         paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom, 0px))",

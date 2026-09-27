@@ -47,9 +47,8 @@ export default function Navbar() {
               </div>
             </div>
           </Link>
-
-          <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0 md:col-start-3 md:justify-self-end">
-            <Link href="/cart" className="relative text-spine">
+          <div className="flex items-center gap-2 sm:gap-5 flex-shrink-0 md:col-start-3 md:justify-self-end">
+            <Link href="/cart" className="relative text-spine flex-shrink-0">
               <ShoppingCart size={22} />
               {count > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-spine text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
@@ -61,13 +60,13 @@ export default function Navbar() {
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
-                className="text-sm text-spine flex items-center gap-1"
+                className="text-xs sm:text-sm text-spine flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
               >
-                <User size={18} /> Logout
+                <User size={18} className="hidden sm:block" /> Logout
               </button>
             ) : (
-              <div className="flex items-center gap-1.5 text-sm text-spine">
-                <User size={18} />
+              <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-spine flex-shrink-0 whitespace-nowrap">
+                <User size={18} className="hidden sm:block" />
                 <Link href="/login" className="hover:opacity-80">
                   Login
                 </Link>
