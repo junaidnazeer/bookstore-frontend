@@ -14,16 +14,16 @@ export default function BottomTabBar() {
   const router = useRouter();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex justify-around py-2 z-40">
+        <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex justify-around pt-2 z-40"
+      style={{
+        paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom, 0px))",
+        transform: "translateZ(0)",
+      }}
+    >
       {TABS.map((tab) => {
         const Icon = tab.icon;
-        // Account stays highlighted across its whole section (nested
-        // /account/* pages and /help, which is reached from the Account menu).
-        const active =
-          tab.href === "/account"
-            ? router.pathname.startsWith("/account") ||
-              router.pathname === "/help"
-            : router.pathname === tab.href.split("?")[0];
+        const active = router.pathname === tab.href.split("?")[0];
         return (
           <Link
             key={tab.label}
