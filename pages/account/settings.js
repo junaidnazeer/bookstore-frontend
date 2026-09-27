@@ -97,6 +97,7 @@ export default function Settings() {
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
 
@@ -120,11 +121,17 @@ export default function Settings() {
     try {
       // Real soft-delete/anonymize endpoint — clears personal info and
       // blocks login, but preserves order history for accounting purposes.
-      await api.delete("/auth/me");
+      // Password-based accounts must confirm with currentPassword; Google-only
+      // accounts send no body. The backend invalidates the token server-side
+      // too, but we still clear localStorage and redirect for a clean UX.
+      const body = deletePassword ? { currentPassword: deletePassword } : {};
+      await api.delete("/auth/me", { data: body });
       window.localStorage.removeItem("token");
       window.localStorage.removeItem("role");
       window.localStorage.removeItem("userName");
       window.localStorage.removeItem("userEmail");
+      window.localStorage.removeItem("savedPaymentMethods");
+      window.localStorage.removeItem("savedAddresses");
       router.push("/login");
     } catch (err) {
       setDeleteError(
@@ -189,35 +196,45 @@ export default function Settings() {
             right={<span />}
           />
         </div>
-
         <SectionLabel>Security</SectionLabel>
         <div className="flex flex-col gap-2 mb-6">
           <Row
-            icon={Lock}
-            label="Change Password"
-            href="/account/change-password"
+            icon={ShieldCheck}
+            label="Privacy & Security"
+            href="/account/privacy-security"
           />
-          <Row icon={ShieldCheck} label="Privacy & Security" href="#" />
         </div>
 
         <SectionLabel>Legal</SectionLabel>
         <div className="flex flex-col gap-2 mb-6">
-          <Row icon={FileText} label="Terms & Conditions" href="#" />
-          <Row icon={ShieldCheck} label="Privacy Policy" href="#" />
+          <Row
+            icon={FileText}
+            label="Terms & Conditions"
+            href="/account/legal/terms"
+          />
+          <Row
+            icon={ShieldCheck}
+            label="Privacy Policy"
+            href="/account/legal/privacy-policy"
+          />
         </div>
 
         <SectionLabel>About</SectionLabel>
         <div className="flex flex-col gap-2 mb-6">
-          <Row icon={Info} label="About Maktabah Islamiyah" href="#" />
+          <Row
+            icon={Info}
+            label="About Maktabah Islamiyah"
+            href="/account/legal/about"
+          />
         </div>
 
-        <SectionLabel danger>Danger Zone</SectionLabel>
         <Row
           icon={Trash2}
           label="Delete Account"
           danger
           onClick={() => {
             setDeleteConfirmText("");
+            setDeletePassword("");
             setDeleteError(null);
             setConfirmDelete(true);
           }}
@@ -233,6 +250,19 @@ export default function Settings() {
               to log in again. Your past orders are kept for our records, but
               your account is permanently closed. This cannot be undone.
             </p>
+
+            <label className="block text-xs text-neutral-500 mb-1">
+              Enter your password to confirm
+            </label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Leave blank if you signed up with Google"
+              className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm outline-none mb-3"
+            />
+
             <label className="block text-xs text-neutral-500 mb-1">
               Type DELETE to confirm
             </label>

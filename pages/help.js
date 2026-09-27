@@ -1,6 +1,5 @@
 import { useState } from "react";
-import Link from "next/link";
-import Navbar from "../components/Navbar";
+import { useRouter } from "next/router";
 import {
   Headphones,
   Phone,
@@ -8,9 +7,12 @@ import {
   HelpCircle,
   MessageCircle,
   ChevronDown,
+  ArrowLeft,
 } from "lucide-react";
 
-// Real, existing contact details (previously used on /account) — not
+const SPINE = "#1e3d32";
+
+// Real, existing contact details already used elsewhere in this app — not
 // invented for this page.
 const SUPPORT_PHONES = ["7006218923", "7006886439"];
 const SUPPORT_EMAIL = "Maktabahislamiyahjk@gmail.com";
@@ -56,6 +58,8 @@ function FaqItem({ q, a }) {
 }
 
 export default function Help() {
+  const router = useRouter();
+
   function callSupport(phone) {
     window.location.href = "tel:+91" + phone;
   }
@@ -65,16 +69,31 @@ export default function Help() {
   }
 
   return (
-    <div>
-      <Navbar />
-      <main className="max-w-xl mx-auto px-4 sm:px-6 py-6">
-        <h1 className="font-serif text-2xl text-ink mb-6">
+    <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
+      <header className="flex items-center gap-3 px-4 py-4 max-w-xl mx-auto">
+        <button
+          onClick={() => router.back()}
+          aria-label="Go back"
+          className="flex-shrink-0"
+          style={{ color: SPINE }}
+        >
+          <ArrowLeft size={22} />
+        </button>
+        <h1
+          className="font-serif text-lg font-semibold"
+          style={{ color: SPINE }}
+        >
           Help &amp; Support
         </h1>
+      </header>
 
-        <div className="flex items-center gap-3 border border-neutral-200 rounded-lg bg-white p-4 mb-6">
-          <div className="w-10 h-10 rounded-full bg-spine/10 text-spine flex items-center justify-center flex-shrink-0">
-            <Headphones size={20} />
+      <main className="max-w-xl mx-auto px-4 pb-10">
+        <div className="flex items-center gap-3 border border-neutral-200 rounded-xl bg-white p-4 mb-6">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: "rgba(30,61,50,0.08)" }}
+          >
+            <Headphones size={20} style={{ color: SPINE }} />
           </div>
           <div>
             <p className="font-medium text-ink">Need Help?</p>
@@ -88,8 +107,12 @@ export default function Help() {
           Contact Us
         </p>
         <div className="flex flex-col gap-2 mb-6">
-          <div className="flex items-center gap-3 border border-neutral-200 rounded-lg bg-white p-3.5">
-            <Phone size={18} className="text-spine flex-shrink-0" />
+          <div className="flex items-center gap-3 border border-neutral-200 rounded-xl bg-white p-3.5">
+            <Phone
+              size={18}
+              style={{ color: SPINE }}
+              className="flex-shrink-0"
+            />
             <div className="flex-1">
               <p className="text-sm font-medium text-ink">Call Us</p>
               <div className="flex flex-col">
@@ -97,7 +120,8 @@ export default function Help() {
                   <button
                     key={phone}
                     onClick={() => callSupport(phone)}
-                    className="text-xs text-spine underline text-left"
+                    className="text-xs underline text-left"
+                    style={{ color: SPINE }}
                   >
                     +91 {phone}
                   </button>
@@ -108,17 +132,26 @@ export default function Help() {
 
           <button
             onClick={emailSupport}
-            className="flex items-center gap-3 border border-neutral-200 rounded-lg bg-white p-3.5 text-left"
+            className="flex items-center gap-3 border border-neutral-200 rounded-xl bg-white p-3.5 text-left"
           >
-            <Mail size={18} className="text-spine flex-shrink-0" />
+            <Mail
+              size={18}
+              style={{ color: SPINE }}
+              className="flex-shrink-0"
+            />
             <div>
               <p className="text-sm font-medium text-ink">Email Us</p>
-              <p className="text-xs text-spine underline">{SUPPORT_EMAIL}</p>
+              <p className="text-xs underline" style={{ color: SPINE }}>
+                {SUPPORT_EMAIL}
+              </p>
             </div>
           </button>
         </div>
 
-        <p className="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-2">
+        <p
+          id="faqs"
+          className="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-2 scroll-mt-4"
+        >
           FAQs
         </p>
         <div className="flex flex-col gap-2 mb-6">
@@ -131,20 +164,30 @@ export default function Help() {
           Quick Links
         </p>
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3 border border-neutral-200 rounded-lg bg-white p-3.5">
-            <HelpCircle size={18} className="text-spine flex-shrink-0" />
+          href="#faqs" className="flex items-center gap-3 border
+          border-neutral-200 rounded-xl bg-white p-3.5"
+          <a>
+            <HelpCircle
+              size={18}
+              style={{ color: SPINE }}
+              className="flex-shrink-0"
+            />
             <div>
               <p className="text-sm font-medium text-ink">FAQs</p>
               <p className="text-xs text-neutral-400">
                 Frequently asked questions
               </p>
             </div>
-          </div>
+          </a>
           <button
             onClick={emailSupport}
-            className="flex items-center gap-3 border border-neutral-200 rounded-lg bg-white p-3.5 text-left"
+            className="flex items-center gap-3 border border-neutral-200 rounded-xl bg-white p-3.5 text-left"
           >
-            <MessageCircle size={18} className="text-spine flex-shrink-0" />
+            <MessageCircle
+              size={18}
+              style={{ color: SPINE }}
+              className="flex-shrink-0"
+            />
             <div>
               <p className="text-sm font-medium text-ink">Contact Support</p>
               <p className="text-xs text-neutral-400">

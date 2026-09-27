@@ -38,7 +38,7 @@ const MENU_ITEMS = [
   {
     icon: User,
     label: "Account Details",
-    sublabel: "Name, email, phone, payment & password",
+    sublabel: "Name, email, phone & payment",
     href: "/account/details",
   },
   {
