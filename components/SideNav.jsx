@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Home, Grid, Search, Heart, User } from "lucide-react";
+import { Home, Grid, Search, Heart, User, X } from "lucide-react";
 import MosqueIcon from "./MosqueIcon";
+import { useSidebar } from "../lib/sidebar-context";
 
 const SPINE = "#1e3d32";
 
-// Same 5 destinations as BottomTabBar — this is the desktop equivalent,
-// shown as a persistent left sidebar instead of a bottom bar once there's
-// enough width for it (md and up).
 const TABS = [
   { href: "/", label: "Home", icon: Home },
   { href: "/categories", label: "Categories", icon: Grid },
@@ -18,33 +16,42 @@ const TABS = [
 
 export default function SideNav() {
   const router = useRouter();
+  const { open, toggle } = useSidebar();
 
   return (
     <nav
-      className="hidden md:flex md:flex-col fixed left-0 top-0 bottom-0 w-56 bg-white border-r border-neutral-200 z-40"
+      className={`hidden md:flex md:flex-col fixed left-0 top-0 bottom-0 w-56 bg-white border-r border-neutral-200 z-40 transition-transform duration-200 ${
+        open ? "md:translate-x-0" : "md:-translate-x-full"
+      }`}
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <Link
-        href="/"
-        className="flex items-center gap-2 px-5 py-5 flex-shrink-0"
-      >
-        <MosqueIcon
-          size={26}
-          style={{ color: SPINE }}
-          className="flex-shrink-0"
-        />
-        <div>
-          <div
-            className="font-serif text-sm font-semibold leading-tight"
+      <div className="flex items-center justify-between gap-2 px-5 py-5 flex-shrink-0">
+        <Link href="/" className="flex items-center gap-2 min-w-0">
+          <MosqueIcon
+            size={26}
             style={{ color: SPINE }}
-          >
-            Maktabah Islamiyah
+            className="flex-shrink-0"
+          />
+          <div className="min-w-0">
+            <div
+              className="font-serif text-sm font-semibold leading-tight truncate"
+              style={{ color: SPINE }}
+            >
+              Maktabah Islamiyah
+            </div>
+            <div className="text-[10px] text-neutral-400 truncate">
+              Faith · Knowledge · Lifestyle
+            </div>
           </div>
-          <div className="text-[10px] text-neutral-400">
-            Faith · Knowledge · Lifestyle
-          </div>
-        </div>
-      </Link>
+        </Link>
+        <button
+          onClick={toggle}
+          aria-label="Close menu"
+          className="flex-shrink-0 text-neutral-400 hover:text-ink"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
       <div className="flex flex-col gap-1 px-3 mt-2">
         {TABS.map((tab) => {
