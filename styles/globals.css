@@ -58,3 +58,25 @@
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }
+/* Safety net: nothing on the page may make it wider than the screen. A
+   single element even a few pixels too wide makes mobile Chrome widen the
+   layout viewport, which knocks position:fixed elements (like the bottom
+   nav) out of alignment with what's actually visible. `hidden` is the
+   fallback; browsers that support `clip` use it instead because it doesn't
+   create a scroll container. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+/* Mobile bottom tab bar: anchor to the dynamic viewport so it stays glued to
+   the visible bottom edge while the browser toolbar shows/hides. */
+@supports (height: 100dvh) {
+  @media (max-width: 767px) {
+    .bottom-tab-bar {
+      bottom: auto;
+      top: calc(100dvh - var(--tab-h));
+    }
+  }
+}

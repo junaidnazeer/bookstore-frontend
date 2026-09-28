@@ -34,7 +34,7 @@ export default function App({ Component, pageProps }) {
           <Head>
             <meta
               name="viewport"
-              content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+              content="width=device-width, initial-scale=1, maximum-scale=1"
             />
           </Head>
           <AppShell Component={Component} pageProps={pageProps} />

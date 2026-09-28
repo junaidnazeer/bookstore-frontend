@@ -229,7 +229,7 @@ export default function Home() {
 
       {/* Hero */}
       <section
-        className="relative w-full h-[360px] md:h-[420px] bg-cover rounded-2xl overflow-hidden mx-4 mt-4 max-w-6xl md:mx-auto"
+        className="relative h-[360px] md:h-[420px] bg-cover rounded-2xl overflow-hidden mx-4 mt-4 max-w-7xl md:mx-auto md:w-[calc(100%_-_2rem)]"
         style={{
           backgroundImage:
             "url('https://images.pexels.com/photos/37697015/pexels-photo-37697015.jpeg')",
