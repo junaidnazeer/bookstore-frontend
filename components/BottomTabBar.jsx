@@ -15,10 +15,14 @@ export default function BottomTabBar() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex justify-around pt-2 z-40"
+      className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-neutral-200 flex justify-around"
       style={{
-        paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom, 0px))",
-        transform: "translateZ(0)",
+        zIndex: 1000,
+        boxSizing: "border-box",
+        // Explicit height with room for icon + label + a buffer below the
+        // labels, so a slightly-off mobile viewport edge can't clip them.
+        height: "calc(72px + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6px)",
       }}
     >
       {TABS.map((tab) => {
@@ -28,12 +32,12 @@ export default function BottomTabBar() {
           <Link
             key={tab.label}
             href={tab.href}
-            className={`flex flex-col items-center gap-0.5 text-[10px] px-2 ${
+            className={`flex flex-1 min-w-0 flex-col items-center justify-center gap-1 ${
               active ? "text-spine" : "text-neutral-400"
             }`}
           >
             <Icon size={20} />
-            {tab.label}
+            <span className="text-[10px] leading-none">{tab.label}</span>
           </Link>
         );
       })}
