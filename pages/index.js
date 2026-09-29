@@ -293,11 +293,11 @@ export default function Home() {
             <Link
               key={c.slug}
               href={`/products?category=${c.slug}`}
-              className={`flex items-center gap-3 border border-neutral-200 rounded-xl bg-white p-3 shadow-sm hover:shadow-md transition-shadow ${
+              className={`flex items-center gap-2.5 sm:gap-3 border border-neutral-200 rounded-xl bg-white p-2.5 sm:p-3 shadow-sm hover:shadow-md transition-shadow ${
                 i === CATEGORIES.length - 1 ? "col-span-2" : ""
               }`}
             >
-              <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-lg overflow-hidden flex-shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={CATEGORY_IMAGE_URLS[c.slug]}
@@ -306,16 +306,16 @@ export default function Home() {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-ink text-sm truncate">
+                <p className="font-medium text-ink text-[13px] sm:text-sm leading-tight break-words">
                   {c.label}
                 </p>
-                <p className="text-xs text-neutral-400">
+                <p className="text-[11px] sm:text-xs text-neutral-400 mt-0.5 whitespace-nowrap">
                   {counts[c.slug] || 0} product{counts[c.slug] === 1 ? "" : "s"}
                 </p>
               </div>
               <ChevronRight
                 size={16}
-                className="text-neutral-300 flex-shrink-0"
+                className="hidden sm:block text-neutral-300 flex-shrink-0"
               />
             </Link>
           ))}

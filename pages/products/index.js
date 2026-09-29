@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import api from "../../lib/api";
@@ -179,6 +179,7 @@ export default function Products() {
       .then((res) => setSubcategories(Array.isArray(res.data) ? res.data : []))
       .catch(() => setSubcategories([]));
   }, [category]);
+  const latestRequestId = useRef(0);
 
   const fetchProducts = useCallback(() => {
     if (!router.isReady) return;
@@ -188,9 +189,12 @@ export default function Products() {
     if (subcategory) params.set("subcategory", subcategory);
     const query = params.toString() ? `?${params.toString()}` : "";
 
+    const requestId = ++latestRequestId.current;
+
     api
       .get(`/products${query}`)
       .then((res) => {
+        if (requestId !== latestRequestId.current) return;
         if (!Array.isArray(res.data)) {
           throw new Error("Unexpected response shape from /products");
         }
@@ -198,6 +202,7 @@ export default function Products() {
         setStatus("success");
       })
       .catch(() => {
+        if (requestId !== latestRequestId.current) return;
         setStatus("error");
       });
   }, [category, subcategory, router.isReady]);
