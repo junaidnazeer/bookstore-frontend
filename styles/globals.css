@@ -70,13 +70,3 @@ body {
   overflow-x: hidden;
   overflow-x: clip;
 }
-/* Mobile bottom tab bar: anchor to the dynamic viewport so it stays glued to
-   the visible bottom edge while the browser toolbar shows/hides. */
-@supports (height: 100dvh) {
-  @media (max-width: 767px) {
-    .bottom-tab-bar {
-      bottom: auto;
-      top: calc(100dvh - var(--tab-h));
-    }
-  }
-}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Navbar from "../components/Navbar";
 import { useCart } from "../lib/cart-context";
@@ -35,6 +35,16 @@ export default function Checkout() {
       color: i.color || null,
     },
   }));
+  const [checkedAuth, setCheckedAuth] = useState(false);
+
+  useEffect(() => {
+    const token = window.localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login?redirect=" + encodeURIComponent("/checkout"));
+      return;
+    }
+    setCheckedAuth(true);
+  }, [router]);
   async function handlePlaceOrder(e) {
     e.preventDefault();
     setError(null);
@@ -107,6 +117,8 @@ export default function Checkout() {
       setLoading(false);
     }
   }
+
+  if (!checkedAuth) return null;
 
   if (items.length === 0) {
     return (

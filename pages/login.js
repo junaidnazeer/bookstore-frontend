@@ -25,7 +25,11 @@ export default function Login() {
       if (res.data.user?.role === "ADMIN") {
         router.push("/admin/products");
       } else {
-        router.push("/");
+        const redirectTo =
+          typeof router.query.redirect === "string"
+            ? router.query.redirect
+            : "/";
+        router.push(redirectTo);
       }
     } catch (err) {
       setError("Login failed. Check your email and password.");
