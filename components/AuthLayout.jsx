@@ -3,9 +3,13 @@ import MosqueIcon from "./MosqueIcon";
 
 function HangingLantern({ side = "left" }) {
   const position =
-    side === "left" ? "left-6 md:left-16" : "right-6 md:right-16";
+    side === "left"
+      ? "left-2 sm:left-6 md:left-16"
+      : "right-2 sm:right-6 md:right-16";
   return (
-    <div className={`hidden md:block absolute top-0 ${position} z-0`}>
+    <div
+      className={`block absolute top-0 ${position} z-0 scale-[0.55] sm:scale-75 md:scale-100 origin-top`}
+    >
       <svg width="90" height="220" viewBox="0 0 90 220" fill="none">
         <line
           x1="45"
@@ -43,7 +47,6 @@ function HangingLantern({ side = "left" }) {
     </div>
   );
 }
-
 function MosqueSkyline() {
   const domes = Array.from({ length: 7 });
   return (
