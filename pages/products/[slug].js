@@ -16,6 +16,7 @@ import {
   Lock,
   RefreshCcw,
   Truck,
+  ShoppingCart,
 } from "lucide-react";
 
 const SPINE = "#1e3d32";
@@ -30,9 +31,10 @@ const DISPLAY_ATTRIBUTES = {
 };
 
 // Compact header: back arrow, the product's category (e.g. "Books"), a
-// search shortcut, and a shortcut into this same category's product list.
-// No cart/login here, matching every other non-Home page in this app.
-function DetailHeader({ router, title, categorySlug }) {
+// search shortcut, a shortcut into this same category's product list, and
+// the cart (with live badge) so the user never has to go back to Home to
+// reach it. No login link here — cart access never requires being logged in.
+function DetailHeader({ router, title, categorySlug, cartCount }) {
   return (
     <header className="flex items-center gap-3 px-4 py-4 max-w-3xl mx-auto">
       <button
@@ -66,6 +68,17 @@ function DetailHeader({ router, title, categorySlug }) {
             <SlidersHorizontal size={18} />
           </Link>
         )}
+        <Link href="/cart" aria-label="Cart" className="relative">
+          <ShoppingCart size={20} />
+          {cartCount > 0 && (
+            <span
+              className="absolute -top-1.5 -right-1.5 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full"
+              style={{ backgroundColor: SPINE }}
+            >
+              {cartCount}
+            </span>
+          )}
+        </Link>
       </div>
     </header>
   );
@@ -161,7 +174,7 @@ export default function ProductDetail() {
   const [added, setAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [touchStartX, setTouchStartX] = useState(null);
-  const { addItem } = useCart();
+  const { addItem, count } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
 
   const fetchProduct = useCallback(() => {
@@ -212,7 +225,7 @@ export default function ProductDetail() {
   if (status === "loading") {
     return (
       <div>
-        <DetailHeader router={router} />
+        <DetailHeader router={router} cartCount={count} />
         <main className="max-w-3xl mx-auto px-4 py-2">
           <DetailSkeleton />
         </main>
@@ -223,7 +236,7 @@ export default function ProductDetail() {
   if (status === "notfound") {
     return (
       <div>
-        <DetailHeader router={router} />
+        <DetailHeader router={router} cartCount={count} />
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
           <p className="text-ink font-medium mb-2">Product not found.</p>
           <p className="text-neutral-500 text-sm mb-5">
@@ -244,7 +257,7 @@ export default function ProductDetail() {
   if (status === "error") {
     return (
       <div>
-        <DetailHeader router={router} />
+        <DetailHeader router={router} cartCount={count} />
         <div className="max-w-3xl mx-auto px-4 py-16 text-center">
           <p className="text-red-600 mb-3">
             Something went wrong loading this product.
@@ -298,6 +311,7 @@ export default function ProductDetail() {
         router={router}
         title={product.categoryName}
         categorySlug={product.category}
+        cartCount={count}
       />
       <main className="max-w-3xl mx-auto px-4 pb-8">
         {/* Image + gallery counter */}

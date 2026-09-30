@@ -3,11 +3,18 @@ import Link from "next/link";
 import MosqueIcon from "../components/MosqueIcon";
 import { useCart } from "../lib/cart-context";
 import { useWishlist } from "../lib/wishlist-context";
-import { Heart, Trash2 } from "lucide-react";
+import { Heart, Trash2, ShoppingCart } from "lucide-react";
 
 function ProductGridCard({ product }) {
   const { addItem } = useCart();
   const { toggleWishlist } = useWishlist();
+  const [added, setAdded] = useState(false);
+
+  function handleAdd() {
+    addItem(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  }
 
   return (
     <div className="border border-neutral-200 rounded-lg bg-white p-3 flex flex-col relative">
@@ -53,10 +60,10 @@ function ProductGridCard({ product }) {
       </div>
 
       <button
-        onClick={() => addItem(product)}
+        onClick={handleAdd}
         className="mt-2 px-3 py-1.5 bg-spine text-white text-sm rounded hover:opacity-90 transition-opacity"
       >
-        Add to Cart
+        {added ? "Added ✓" : "Add to Cart"}
       </button>
     </div>
   );
@@ -91,6 +98,7 @@ function ClearWishlistDialog({ onCancel, onConfirm }) {
 
 export default function Wishlist() {
   const { items, clearWishlist } = useWishlist();
+  const { count } = useCart();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   function handleClear() {
@@ -117,17 +125,26 @@ export default function Wishlist() {
           </div>
         </Link>
 
-        {items.length > 0 && (
-          <button
-            onClick={() => setConfirmOpen(true)}
-            aria-label="Clear wishlist"
-            className="text-spine"
-          >
-            <Trash2 size={22} />
-          </button>
-        )}
+        <div className="flex items-center gap-4">
+          <Link href="/cart" aria-label="Cart" className="relative text-spine">
+            <ShoppingCart size={22} />
+            {count > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-spine text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                {count}
+              </span>
+            )}
+          </Link>
+          {items.length > 0 && (
+            <button
+              onClick={() => setConfirmOpen(true)}
+              aria-label="Clear wishlist"
+              className="text-spine"
+            >
+              <Trash2 size={22} />
+            </button>
+          )}
+        </div>
       </header>
-
       <main className="max-w-5xl mx-auto px-4 pb-8">
         <h1 className="font-serif text-2xl text-ink mb-1">My Wishlist</h1>
         <p className="text-sm text-neutral-500 mb-5">

@@ -8,6 +8,13 @@ export default function Checkout() {
   const router = useRouter();
   const { items, total, clearCart } = useCart();
 
+  useEffect(() => {
+    const token = window.localStorage.getItem("token");
+    if (!token) {
+      router.push("/login?redirect=/checkout");
+    }
+  }, [router]);
+
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [addressLine, setAddressLine] = useState("");

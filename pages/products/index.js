@@ -5,7 +5,13 @@ import api from "../../lib/api";
 import { normalizeProduct } from "../../lib/normalizeProduct";
 import { useCart } from "../../lib/cart-context";
 import { useWishlist } from "../../lib/wishlist-context";
-import { ArrowLeft, Search as SearchIcon, Heart } from "lucide-react";
+
+import {
+  ArrowLeft,
+  Search as SearchIcon,
+  Heart,
+  ShoppingCart,
+} from "lucide-react";
 
 // One entry per category — drives the banner title/tagline/image below.
 // Add a category here and it gets full support automatically; nothing is
@@ -64,11 +70,17 @@ const SORT_OPTIONS = [
   { value: "price-high", label: "Price: High to Low" },
   { value: "newest", label: "Newest First" },
 ];
-
 function ProductGridCard({ product }) {
   const { addItem } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const wishlisted = isWishlisted(product.id);
+  const [added, setAdded] = useState(false);
+
+  function handleAdd() {
+    addItem(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  }
 
   return (
     <div className="border border-neutral-200 rounded-lg bg-white p-3 flex flex-col relative">
@@ -103,7 +115,6 @@ function ProductGridCard({ product }) {
 
       <div className="flex items-center gap-2 mt-1">
         <p className="text-spine font-semibold">₹{product.price}</p>
-        {/* Only shows once backend actually provides discount data — never faked. */}
         {product.originalPrice && (
           <>
             <p className="text-xs text-neutral-400 line-through">
@@ -119,15 +130,14 @@ function ProductGridCard({ product }) {
       </div>
 
       <button
-        onClick={() => addItem(product)}
+        onClick={handleAdd}
         className="mt-2 px-3 py-1.5 bg-spine text-white text-sm rounded hover:opacity-90 transition-opacity"
       >
-        Add to Cart
+        {added ? "Added ✓" : "Add to Cart"}
       </button>
     </div>
   );
 }
-
 function ProductCardSkeleton() {
   return (
     <div className="border border-neutral-200 rounded-lg bg-white p-3 animate-pulse">
@@ -148,6 +158,7 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sort, setSort] = useState("featured");
   const [retryCount, setRetryCount] = useState(0);
+  const { count } = useCart();
 
   // Real subcategories for the current category, from the backend's
   // dedicated endpoint — not computed from whatever happens to be on screen.
@@ -257,9 +268,19 @@ export default function Products() {
           <ArrowLeft size={22} />
         </button>
         <h1 className="font-serif text-lg text-ink">{info.title}</h1>
-        <Link href="/search" aria-label="Search" className="text-ink">
-          <SearchIcon size={20} />
-        </Link>
+        <div className="flex items-center gap-4 text-ink">
+          <Link href="/search" aria-label="Search">
+            <SearchIcon size={20} />
+          </Link>
+          <Link href="/cart" aria-label="Cart" className="relative">
+            <ShoppingCart size={20} />
+            {count > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-spine text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                {count}
+              </span>
+            )}
+          </Link>
+        </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-4 pb-8">
