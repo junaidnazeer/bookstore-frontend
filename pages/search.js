@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Search as SearchIcon,
   SlidersHorizontal,
+  ShoppingCart,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -89,6 +90,13 @@ function ProductGridCard({ product }) {
   const { addItem } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const wishlisted = isWishlisted(product.id);
+  const [added, setAdded] = useState(false);
+
+  function handleAdd() {
+    addItem(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  }
 
   return (
     <div className="border border-neutral-200 rounded-lg bg-white p-3 flex flex-col relative">
@@ -139,10 +147,10 @@ function ProductGridCard({ product }) {
       </div>
 
       <button
-        onClick={() => addItem(product)}
+        onClick={handleAdd}
         className="mt-2 px-3 py-1.5 bg-spine text-white text-sm rounded hover:opacity-90 transition-opacity"
       >
-        Add to Cart
+        {added ? "Added ✓" : "Add to Cart"}
       </button>
     </div>
   );
@@ -158,6 +166,7 @@ export default function SearchPage() {
   const [category, setCategory] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [inputValue, setInputValue] = useState("");
+  const { count } = useCart();
 
   useEffect(() => {
     setRecentSearches(loadRecentSearches());
@@ -274,24 +283,42 @@ export default function SearchPage() {
       {/* Branding-only header — no cart, no login/logout, matching the
           reference (Search is a bottom-tab page, not a drill-down page). */}
       <header className="px-4 py-4 max-w-5xl mx-auto">
-        <Link href="/" className="flex items-center gap-2 mb-4 w-fit">
-          <MosqueIcon
-            size={28}
-            style={{ color: "#1e3d32" }}
-            className="flex-shrink-0"
-          />
-          <div>
-            <div
-              className="font-serif text-base sm:text-xl leading-tight"
+        <div className="flex items-center justify-between mb-4">
+          <Link href="/" className="flex items-center gap-2 w-fit">
+            <MosqueIcon
+              size={28}
               style={{ color: "#1e3d32" }}
-            >
-              Maktabah Islamiyah
+              className="flex-shrink-0"
+            />
+            <div>
+              <div
+                className="font-serif text-base sm:text-xl leading-tight"
+                style={{ color: "#1e3d32" }}
+              >
+                Maktabah Islamiyah
+              </div>
+              <div className="text-[11px] sm:text-xs text-neutral-400">
+                Faith · Knowledge · Lifestyle
+              </div>
             </div>
-            <div className="text-[11px] sm:text-xs text-neutral-400">
-              Faith · Knowledge · Lifestyle
-            </div>
-          </div>
-        </Link>
+          </Link>
+          <Link
+            href="/cart"
+            aria-label="Cart"
+            className="relative"
+            style={{ color: "#1e3d32" }}
+          >
+            <ShoppingCart size={22} />
+            {count > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full"
+                style={{ backgroundColor: "#1e3d32" }}
+              >
+                {count}
+              </span>
+            )}
+          </Link>
+        </div>
 
         <form onSubmit={handleSearchSubmit}>
           <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-full pl-4 pr-2 py-2.5 shadow-sm">
