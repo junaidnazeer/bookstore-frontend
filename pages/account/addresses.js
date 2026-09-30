@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import api from "../../lib/api";
 import {
   ArrowLeft,
   MapPin,
@@ -14,26 +15,7 @@ import {
 } from "lucide-react";
 
 const SPINE = "#1e3d32";
-
-// No address-book endpoints exist in API_REFERENCE.md yet, so addresses are
-// kept client-side for now. This mirrors the exact shape checkout will need
-// once it's wired to let the user pick a saved address.
-const STORAGE_KEY = "savedAddresses";
-
 const LABEL_ICONS = { Home, Work: Briefcase, Other: Building };
-
-function loadAddresses() {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveAddresses(list) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
 
 const EMPTY_FORM = {
   label: "Home",
@@ -45,6 +27,12 @@ const EMPTY_FORM = {
   state: "",
   pincode: "",
 };
+
+function extractErrorMessage(err, fallback) {
+  if (err.response) return err.response.data?.error || fallback;
+  if (err.request) return "Could not reach the server. Please try again.";
+  return fallback;
+}
 
 function AddressesHeader({ router }) {
   return (
@@ -69,15 +57,28 @@ export default function SavedAddresses() {
   const [checked, setChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [addresses, setAddresses] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  function loadAddresses() {
+    api
+      .get("/addresses")
+      .then((res) => setAddresses(Array.isArray(res.data) ? res.data : []))
+      .catch((err) =>
+        setLoadError(
+          extractErrorMessage(err, "Could not load your addresses."),
+        ),
+      );
+  }
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
     setIsLoggedIn(!!token);
-    if (token) setAddresses(loadAddresses());
+    if (token) loadAddresses();
     setChecked(true);
   }, []);
 
@@ -95,20 +96,27 @@ export default function SavedAddresses() {
     setShowForm(true);
   }
 
-  function handleDelete(id) {
-    const next = addresses.filter((a) => a.id !== id);
-    setAddresses(next);
-    saveAddresses(next);
+  async function handleDelete(id) {
+    try {
+      await api.delete(`/addresses/${id}`);
+      loadAddresses();
+    } catch (err) {
+      setLoadError(extractErrorMessage(err, "Could not delete this address."));
+    }
   }
 
-  function handleSetDefault(id) {
-    const next = addresses.map((a) => ({ ...a, isDefault: a.id === id }));
-    setAddresses(next);
-    saveAddresses(next);
+  async function handleSetDefault(id) {
+    try {
+      await api.put(`/addresses/${id}/default`);
+      loadAddresses();
+    } catch (err) {
+      setLoadError(extractErrorMessage(err, "Could not set this as default."));
+    }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setError(null);
     if (
       !form.fullName.trim() ||
       !form.phone.trim() ||
@@ -129,23 +137,31 @@ export default function SavedAddresses() {
       return;
     }
 
-    let next;
-    if (editingId) {
-      next = addresses.map((a) =>
-        a.id === editingId
-          ? { ...form, id: editingId, isDefault: a.isDefault }
-          : a,
-      );
-    } else {
-      const isFirst = addresses.length === 0;
-      next = [
-        ...addresses,
-        { ...form, id: Date.now().toString(), isDefault: isFirst },
-      ];
+    const body = {
+      label: form.label,
+      fullName: form.fullName.trim(),
+      phone: form.phone.trim(),
+      street: form.street.trim(),
+      area: form.area.trim(),
+      city: form.city.trim(),
+      state: form.state.trim(),
+      pincode: form.pincode.trim(),
+    };
+
+    setSaving(true);
+    try {
+      if (editingId) {
+        await api.put(`/addresses/${editingId}`, body);
+      } else {
+        await api.post("/addresses", body);
+      }
+      loadAddresses();
+      setShowForm(false);
+    } catch (err) {
+      setError(extractErrorMessage(err, "Could not save this address."));
+    } finally {
+      setSaving(false);
     }
-    setAddresses(next);
-    saveAddresses(next);
-    setShowForm(false);
   }
 
   if (!checked) return null;
@@ -175,6 +191,8 @@ export default function SavedAddresses() {
     <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
       <AddressesHeader router={router} />
       <main className="max-w-xl mx-auto px-4 pb-10">
+        {loadError && <p className="text-red-600 text-sm mb-4">{loadError}</p>}
+
         <button
           onClick={openAddForm}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-white text-sm font-medium mb-5 hover:opacity-90 transition-opacity"
@@ -376,10 +394,15 @@ export default function SavedAddresses() {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm rounded-lg text-white hover:opacity-90 transition-opacity"
+                disabled={saving}
+                className="px-4 py-2 text-sm rounded-lg text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                 style={{ backgroundColor: SPINE }}
               >
-                {editingId ? "Save Changes" : "Add Address"}
+                {saving
+                  ? "Saving..."
+                  : editingId
+                    ? "Save Changes"
+                    : "Add Address"}
               </button>
             </div>
           </form>

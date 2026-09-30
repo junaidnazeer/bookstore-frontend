@@ -3,46 +3,48 @@ import { useRouter } from "next/router";
 import Navbar from "../components/Navbar";
 import { useCart } from "../lib/cart-context";
 import api from "../lib/api";
+import { MapPin, Plus, Pencil } from "lucide-react";
+
+const EMPTY_FORM = {
+  label: "Home",
+  fullName: "",
+  phone: "",
+  street: "",
+  area: "",
+  city: "",
+  state: "",
+  pincode: "",
+};
+
+function extractErrorMessage(err, fallback) {
+  if (err.response) return err.response.data?.error || fallback;
+  if (err.request) return "Could not reach the server. Please try again.";
+  return fallback;
+}
+
+// Turns a saved address record into the single string the backend expects
+// for shippingAddress — same format used everywhere else in the app.
+function formatAddress(addr) {
+  return `${addr.fullName}, ${addr.street}${addr.area ? ", " + addr.area : ""}, ${addr.city}, ${addr.state} - ${addr.pincode}, Phone: ${addr.phone}`;
+}
 
 export default function Checkout() {
   const router = useRouter();
   const { items, total, clearCart } = useCart();
 
-  useEffect(() => {
-    const token = window.localStorage.getItem("token");
-    if (!token) {
-      router.push("/login?redirect=/checkout");
-    }
-  }, [router]);
+  const [checkedAuth, setCheckedAuth] = useState(false);
 
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [addressLine, setAddressLine] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [pincode, setPincode] = useState("");
+  const [addresses, setAddresses] = useState([]);
+  const [addressesLoading, setAddressesLoading] = useState(true);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [formError, setFormError] = useState(null);
+  const [savingAddress, setSavingAddress] = useState(false);
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  // Only computed from real per-item discount data — never fabricated.
-  const totalSavings = items.reduce((sum, item) => {
-    if (!item.originalPrice) return sum;
-    return sum + (item.originalPrice - item.price) * item.quantity;
-  }, 0);
-
-  // Backend expects the shipping address as a single formatted string, not an object.
-  const shippingAddress = `${fullName}, ${addressLine}, ${city}, ${state} - ${pincode}, Phone: ${phone}`;
-
-  const cartItems = items.map((i) => ({
-    productId: i.id,
-    quantity: i.quantity,
-    variantInfo: {
-      size: i.size || null,
-      color: i.color || null,
-    },
-  }));
-  const [checkedAuth, setCheckedAuth] = useState(false);
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
@@ -52,11 +54,124 @@ export default function Checkout() {
     }
     setCheckedAuth(true);
   }, [router]);
+
+  function loadAddresses(preferId) {
+    setAddressesLoading(true);
+    api
+      .get("/addresses")
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setAddresses(list);
+        const preferred = preferId && list.find((a) => a.id === preferId);
+        const fallback = list.find((a) => a.isDefault) || list[0];
+        setSelectedAddressId((preferred || fallback)?.id || null);
+        // No saved addresses at all — open the form immediately so a
+        // first-time buyer isn't stuck with nothing to select.
+        if (list.length === 0) setShowForm(true);
+      })
+      .catch((err) => {
+        setError(extractErrorMessage(err, "Could not load your addresses."));
+      })
+      .finally(() => setAddressesLoading(false));
+  }
+
+  useEffect(() => {
+    if (checkedAuth) loadAddresses();
+  }, [checkedAuth]);
+
+  // Only computed from real per-item discount data — never fabricated.
+  const totalSavings = items.reduce((sum, item) => {
+    if (!item.originalPrice) return sum;
+    return sum + (item.originalPrice - item.price) * item.quantity;
+  }, 0);
+
+  const cartItems = items.map((i) => ({
+    productId: i.id,
+    quantity: i.quantity,
+    variantInfo: {
+      size: i.size || null,
+      color: i.color || null,
+    },
+  }));
+
+  function openAddForm() {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setFormError(null);
+    setShowForm(true);
+  }
+
+  function openEditForm(addr) {
+    setForm({ ...addr });
+    setEditingId(addr.id);
+    setFormError(null);
+    setShowForm(true);
+  }
+
+  async function handleSaveAddress(e) {
+    e.preventDefault();
+    setFormError(null);
+    if (
+      !form.fullName.trim() ||
+      !form.phone.trim() ||
+      !form.street.trim() ||
+      !form.city.trim() ||
+      !form.state.trim() ||
+      !form.pincode.trim()
+    ) {
+      setFormError("Please fill in all required fields.");
+      return;
+    }
+    if (!/^\d{10}$/.test(form.phone.trim())) {
+      setFormError("Enter a valid 10-digit phone number.");
+      return;
+    }
+    if (!/^\d{6}$/.test(form.pincode.trim())) {
+      setFormError("Enter a valid 6-digit PIN code.");
+      return;
+    }
+
+    const body = {
+      label: form.label,
+      fullName: form.fullName.trim(),
+      phone: form.phone.trim(),
+      street: form.street.trim(),
+      area: form.area.trim(),
+      city: form.city.trim(),
+      state: form.state.trim(),
+      pincode: form.pincode.trim(),
+    };
+
+    setSavingAddress(true);
+    try {
+      let savedId = editingId;
+      if (editingId) {
+        await api.put(`/addresses/${editingId}`, body);
+      } else {
+        const res = await api.post("/addresses", body);
+        savedId = res.data?.id;
+      }
+      setShowForm(false);
+      loadAddresses(savedId);
+    } catch (err) {
+      setFormError(extractErrorMessage(err, "Could not save this address."));
+    } finally {
+      setSavingAddress(false);
+    }
+  }
+
   async function handlePlaceOrder(e) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
 
+    const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
+    if (!selectedAddress) {
+      setError("Please select or add a delivery address.");
+      return;
+    }
+    const shippingAddress = formatAddress(selectedAddress);
+
+    setLoading(true);
     try {
       if (!window.Razorpay) {
         throw new Error(
@@ -96,8 +211,8 @@ export default function Checkout() {
           ondismiss: () => setLoading(false),
         },
         prefill: {
-          name: fullName,
-          contact: phone,
+          name: selectedAddress.fullName,
+          contact: selectedAddress.phone,
         },
         theme: { color: "#1E3D32" },
       };
@@ -149,71 +264,217 @@ export default function Checkout() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <form onSubmit={handlePlaceOrder} className="flex flex-col gap-3">
-            <h2 className="font-medium text-ink mb-1">Shipping address</h2>
-
-            <input
-              type="text"
-              placeholder="Full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="border border-neutral-300 rounded px-3 py-2"
-              required
-            />
-
-            <div className="flex border border-neutral-300 rounded overflow-hidden">
-              <span className="px-3 py-2 bg-neutral-50 text-neutral-500 border-r border-neutral-300">
-                +91
-              </span>
-              <input
-                type="tel"
-                inputMode="numeric"
-                maxLength={10}
-                placeholder="Phone number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                className="flex-1 px-3 py-2 outline-none"
-                required
-              />
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-medium text-ink">Delivery address</h2>
+              {addresses.length > 0 && (
+                <button
+                  type="button"
+                  onClick={openAddForm}
+                  className="text-sm text-spine flex items-center gap-1"
+                >
+                  <Plus size={14} /> Add New
+                </button>
+              )}
             </div>
 
-            <input
-              type="text"
-              placeholder="Address line"
-              value={addressLine}
-              onChange={(e) => setAddressLine(e.target.value)}
-              className="border border-neutral-300 rounded px-3 py-2"
-              required
-            />
+            {addressesLoading && (
+              <p className="text-sm text-neutral-400">Loading addresses...</p>
+            )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                type="text"
-                placeholder="City"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="border border-neutral-300 rounded px-3 py-2"
-                required
-              />
-              <input
-                type="text"
-                placeholder="State"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                className="border border-neutral-300 rounded px-3 py-2"
-                required
-              />
-            </div>
+            {!addressesLoading && addresses.length > 0 && (
+              <div className="flex flex-col gap-2 mb-2">
+                {addresses.map((addr) => (
+                  <label
+                    key={addr.id}
+                    className={`flex items-start gap-3 border rounded-lg p-3 cursor-pointer ${
+                      selectedAddressId === addr.id
+                        ? "border-spine bg-spine/5"
+                        : "border-neutral-200"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="address"
+                      checked={selectedAddressId === addr.id}
+                      onChange={() => setSelectedAddressId(addr.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <MapPin
+                          size={14}
+                          className="text-spine flex-shrink-0"
+                        />
+                        <span className="text-sm font-medium text-ink">
+                          {addr.label}
+                        </span>
+                        {addr.isDefault && (
+                          <span className="text-xs bg-spine/10 text-spine px-1.5 py-0.5 rounded-full">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-ink mt-0.5">{addr.fullName}</p>
+                      <p className="text-xs text-neutral-500">
+                        {addr.street}, {addr.area ? `${addr.area}, ` : ""}
+                        {addr.city}, {addr.state} – {addr.pincode}
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        +91 {addr.phone}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openEditForm(addr)}
+                      className="text-neutral-400 hover:text-spine flex-shrink-0"
+                      aria-label="Edit address"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  </label>
+                ))}
+              </div>
+            )}
 
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="Pincode"
-              value={pincode}
-              onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
-              className="border border-neutral-300 rounded px-3 py-2"
-              required
-            />
+            {!addressesLoading && addresses.length === 0 && !showForm && (
+              <button
+                type="button"
+                onClick={openAddForm}
+                className="border border-dashed border-neutral-300 rounded-lg py-3 text-sm text-spine hover:bg-neutral-50 transition-colors"
+              >
+                + Add Delivery Address
+              </button>
+            )}
+
+            {showForm && (
+              <div className="border border-neutral-200 rounded-lg p-3 flex flex-col gap-2 mb-2">
+                <p className="text-sm font-medium text-ink mb-1">
+                  {editingId ? "Edit address" : "Add new address"}
+                </p>
+
+                <div className="flex gap-2">
+                  {["Home", "Work", "Other"].map((label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, label }))}
+                      className={`flex-1 py-1.5 rounded text-xs border ${
+                        form.label === label
+                          ? "bg-spine text-white border-spine"
+                          : "border-neutral-300 text-ink"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Full name"
+                  value={form.fullName}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, fullName: e.target.value }))
+                  }
+                  className="border border-neutral-300 rounded px-3 py-2 text-sm"
+                />
+                <div className="flex border border-neutral-300 rounded overflow-hidden">
+                  <span className="px-3 py-2 bg-neutral-50 text-neutral-500 border-r border-neutral-300 text-sm">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="Phone number"
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        phone: e.target.value.replace(/\D/g, ""),
+                      }))
+                    }
+                    className="flex-1 px-3 py-2 outline-none text-sm"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="House / Building / Street"
+                  value={form.street}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, street: e.target.value }))
+                  }
+                  className="border border-neutral-300 rounded px-3 py-2 text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="Area / Locality (optional)"
+                  value={form.area}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, area: e.target.value }))
+                  }
+                  className="border border-neutral-300 rounded px-3 py-2 text-sm"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={form.city}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, city: e.target.value }))
+                    }
+                    className="border border-neutral-300 rounded px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="State"
+                    value={form.state}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, state: e.target.value }))
+                    }
+                    className="border border-neutral-300 rounded px-3 py-2 text-sm"
+                  />
+                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="PIN code"
+                  value={form.pincode}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      pincode: e.target.value.replace(/\D/g, ""),
+                    }))
+                  }
+                  className="border border-neutral-300 rounded px-3 py-2 text-sm"
+                />
+
+                {formError && (
+                  <p className="text-red-600 text-sm">{formError}</p>
+                )}
+
+                <div className="flex gap-2 justify-end mt-1">
+                  {addresses.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowForm(false)}
+                      className="px-3 py-1.5 text-sm rounded border border-neutral-300"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleSaveAddress}
+                    disabled={savingAddress}
+                    className="px-3 py-1.5 text-sm rounded bg-spine text-white disabled:opacity-50"
+                  >
+                    {savingAddress ? "Saving..." : "Save Address"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mt-2 border border-neutral-200 rounded px-3 py-2 bg-neutral-50">
               <p className="text-sm font-medium text-ink">Payment method</p>
@@ -226,7 +487,7 @@ export default function Checkout() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || addressesLoading || !selectedAddressId}
               className="mt-2 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {loading ? "Processing..." : `Place order — ₹${total}`}
