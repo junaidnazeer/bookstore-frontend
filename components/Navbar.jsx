@@ -35,7 +35,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between gap-3 md:contents">
           <Link
             href="/"
-            className="flex-shrink-0 flex items-center gap-2 min-w-0 md:col-start-1 md:justify-self-start"
+            className="flex-shrink-0 flex items-center gap-2 min-w-0 md:col-start-1 md:row-start-1 md:justify-self-start md:ml-12"
           >
             <MosqueIcon size={28} className="text-spine flex-shrink-0" />
             <div className="min-w-0">
@@ -47,7 +47,7 @@ export default function Navbar() {
               </div>
             </div>
           </Link>
-          <div className="flex items-center gap-2 sm:gap-5 flex-shrink-0 md:col-start-3 md:justify-self-end">
+          <div className="flex items-center gap-2 sm:gap-5 flex-shrink-0 md:col-start-3 md:row-start-1 md:justify-self-end">
             <Link href="/cart" className="relative text-spine flex-shrink-0">
               <ShoppingCart size={22} />
               {count > 0 && (
@@ -60,12 +60,12 @@ export default function Navbar() {
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
-                className="text-xs sm:text-sm text-spine flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
+                className="md:hidden text-xs sm:text-sm text-spine flex items-center gap-1 flex-shrink-0 whitespace-nowrap"
               >
                 <User size={18} className="hidden sm:block" /> Logout
               </button>
             ) : (
-              <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-spine flex-shrink-0 whitespace-nowrap">
+              <div className="md:hidden flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-spine flex-shrink-0 whitespace-nowrap">
                 <User size={18} className="hidden sm:block" />
                 <Link href="/login" className="hover:opacity-80">
                   Login
@@ -81,7 +81,7 @@ export default function Navbar() {
 
         <form
           onSubmit={handleSearch}
-          className="w-full md:col-start-2 md:justify-self-center md:w-full md:max-w-md"
+          className="w-full md:col-start-2 md:row-start-1 md:justify-self-center md:w-full md:max-w-md"
         >
           <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-full pl-4 pr-2 py-2.5 shadow-sm">
             <Search size={18} className="text-neutral-400 flex-shrink-0" />

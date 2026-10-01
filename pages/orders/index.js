@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import Navbar from "../../components/Navbar";
 import api from "../../lib/api";
-import { Package, ChevronRight } from "lucide-react";
+import { Package, ChevronRight, ArrowLeft } from "lucide-react";
 
+const SPINE = "#1e3d32";
 const STATUS_STYLES = {
   PENDING: "bg-amber-100 text-amber-700",
   PAID: "bg-blue-100 text-blue-700",
@@ -40,11 +40,24 @@ export default function Orders() {
   if (!checked) return null;
 
   return (
-    <div>
-      <Navbar />
-      <main className="max-w-2xl mx-auto px-6 py-8">
-        <h1 className="font-serif text-2xl text-ink mb-6">My Orders</h1>
-
+    <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
+      <header className="flex items-center gap-3 px-4 py-4 max-w-2xl mx-auto">
+        <button
+          onClick={() => router.back()}
+          aria-label="Go back"
+          className="flex-shrink-0"
+          style={{ color: SPINE }}
+        >
+          <ArrowLeft size={22} />
+        </button>
+        <h1
+          className="font-serif text-lg font-semibold"
+          style={{ color: SPINE }}
+        >
+          My Orders
+        </h1>
+      </header>
+      <main className="max-w-2xl mx-auto px-6 pb-8">
         {loading && <p className="text-neutral-400">Loading orders...</p>}
         {error && <p className="text-red-600">{error}</p>}
 
