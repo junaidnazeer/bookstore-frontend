@@ -50,9 +50,15 @@ export default function SideNav() {
 
   const close = () => setOpen(false);
 
-  // Keep the Login/Logout slot in sync with the stored session.
+  // Keep the Login / Logout slot in sync with the stored session (the same
+  // `token` the login page, Navbar and Account page already use). Re-read it
+  // every time the drawer opens, after every navigation, and whenever another
+  // tab logs in or out.
   useEffect(() => {
-    setIsLoggedIn(!!window.localStorage.getItem("token"));
+    const sync = () => setIsLoggedIn(!!window.localStorage.getItem("token"));
+    sync();
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
   }, [open, router.pathname]);
 
   // Close after any navigation.
@@ -153,7 +159,7 @@ export default function SideNav() {
         role="dialog"
         aria-modal="true"
         aria-label="Main menu"
-        className={`hidden md:flex md:flex-col fixed left-0 top-0 bottom-0 z-[100] w-[340px] max-w-[90vw] bg-white shadow-2xl overflow-y-auto overscroll-contain transition-[translate,visibility] duration-200 ease-out ${
+        className={`hidden md:flex md:flex-col fixed left-0 top-0 bottom-0 z-[100] w-[340px] max-w-[90vw] bg-paper shadow-2xl overflow-y-auto overscroll-contain transition-[translate,visibility] duration-200 ease-out ${
           open ? "translate-x-0 visible" : "-translate-x-full invisible"
         }`}
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
@@ -237,14 +243,26 @@ export default function SideNav() {
               <span className="flex-1">Logout</span>
             </button>
           ) : (
-            <Link
-              href="/login"
-              onClick={close}
-              className={`${ITEM_CLASS} text-ink`}
-            >
+            <div className={`${ITEM_CLASS} text-ink`}>
               <LogIn size={21} className="text-spine flex-shrink-0" />
-              <span className="flex-1">Login</span>
-            </Link>
+              <span className="flex-1 flex items-center gap-1.5">
+                <Link
+                  href="/login"
+                  onClick={close}
+                  className="hover:underline underline-offset-4"
+                >
+                  Login
+                </Link>
+                <span className="text-spine/50">/</span>
+                <Link
+                  href="/signup"
+                  onClick={close}
+                  className="hover:underline underline-offset-4"
+                >
+                  Sign Up
+                </Link>
+              </span>
+            </div>
           )}
         </nav>
 

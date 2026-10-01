@@ -1,9 +1,11 @@
 import { useState } from "react";
 import Link from "next/link";
-import MosqueIcon from "../components/MosqueIcon";
+import { useRouter } from "next/router";
 import { useCart } from "../lib/cart-context";
 import { useWishlist } from "../lib/wishlist-context";
-import { Heart, Trash2, ShoppingCart } from "lucide-react";
+import { Heart, Trash2, ShoppingCart, ArrowLeft } from "lucide-react";
+
+const SPINE = "#1e3d32";
 
 function ProductGridCard({ product }) {
   const { addItem } = useCart();
@@ -97,6 +99,7 @@ function ClearWishlistDialog({ onCancel, onConfirm }) {
 }
 
 export default function Wishlist() {
+  const router = useRouter();
   const { items, clearWishlist } = useWishlist();
   const { count } = useCart();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -108,22 +111,24 @@ export default function Wishlist() {
 
   return (
     <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
-      {/* Header: branding on the left, clear-wishlist trash icon on the right */}
-      <header className="flex items-center justify-between px-4 py-4 max-w-5xl mx-auto">
-        <Link href="/" className="flex items-center gap-2">
-          <MosqueIcon size={28} className="text-spine flex-shrink-0" />
-          <div>
-            <div
-              className="font-serif text-base sm:text-xl leading-tight"
-              style={{ color: "#1e3d32" }}
-            >
-              Maktabah Islamiyah
-            </div>
-            <div className="text-[11px] sm:text-xs text-neutral-400">
-              Faith · Knowledge · Lifestyle
-            </div>
-          </div>
-        </Link>
+      {/* Header: back arrow + title on the left, cart/clear-wishlist on the right */}
+      <header className="flex items-center justify-between gap-3 px-4 py-4 max-w-5xl mx-auto">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            aria-label="Go back"
+            className="flex-shrink-0"
+            style={{ color: SPINE }}
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <h1
+            className="font-serif text-lg font-semibold"
+            style={{ color: SPINE }}
+          >
+            Wishlist
+          </h1>
+        </div>
 
         <div className="flex items-center gap-4">
           <Link href="/cart" aria-label="Cart" className="relative text-spine">
@@ -146,8 +151,7 @@ export default function Wishlist() {
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-4 pb-8">
-        <h1 className="font-serif text-2xl text-ink mb-1">My Wishlist</h1>
-        <p className="text-sm text-neutral-500 mb-5">
+        <p className="text-sm text-neutral-500 mb-5 mt-1">
           {items.length} saved item{items.length === 1 ? "" : "s"}
         </p>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import api from "../lib/api";
 import Link from "next/link";
 import MosqueIcon from "../components/MosqueIcon";
 import {
@@ -113,11 +114,30 @@ export default function Account() {
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
-    setIsLoggedIn(!!token);
-    // Real values from the actual logged-in session — never hardcoded.
-    setUserName(window.localStorage.getItem("userName") || "");
-    setUserEmail(window.localStorage.getItem("userEmail") || "");
-    setChecked(true);
+    if (!token) {
+      setIsLoggedIn(false);
+      setChecked(true);
+      return;
+    }
+    setIsLoggedIn(true);
+    // Always confirm against the real logged-in user — a cached name/email
+    // can go stale after switching accounts (e.g. via Google login, which
+    // only ever stores the token, not the profile).
+    api
+      .get("/auth/me")
+      .then((res) => {
+        setUserName(res.data.name || "");
+        setUserEmail(res.data.email || "");
+        window.localStorage.setItem("userName", res.data.name || "");
+        window.localStorage.setItem("userEmail", res.data.email || "");
+      })
+      .catch(() => {
+        // Fall back to whatever's cached if the request fails, rather than
+        // showing a blank name.
+        setUserName(window.localStorage.getItem("userName") || "");
+        setUserEmail(window.localStorage.getItem("userEmail") || "");
+      })
+      .finally(() => setChecked(true));
   }, []);
 
   function handleLogoutConfirmed() {
