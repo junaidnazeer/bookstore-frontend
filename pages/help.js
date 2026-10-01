@@ -164,9 +164,10 @@ export default function Help() {
           Quick Links
         </p>
         <div className="flex flex-col gap-2">
-          href="#faqs" className="flex items-center gap-3 border
-          border-neutral-200 rounded-xl bg-white p-3.5"
-          <a>
+          <a
+            href="#faqs"
+            className="flex items-center gap-3 border border-neutral-200 rounded-xl bg-white p-3.5"
+          >
             <HelpCircle
               size={18}
               style={{ color: SPINE }}
