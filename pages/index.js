@@ -501,15 +501,21 @@ export default function Home() {
           </FooterAccordion>
 
           <FooterAccordion title="Customer Care">
-            <p>Contact Us</p>
-            <p>Orders</p>
-            <p>Shipping</p>
-            <p>Returns</p>
+            <Link href="/help" className="block">
+              Contact Us
+            </Link>
+            <Link href="/orders" className="block">
+              Orders
+            </Link>
           </FooterAccordion>
 
           <FooterAccordion title="Policies">
-            <p>Privacy Policy</p>
-            <p>Terms & Conditions</p>
+            <Link href="/account/legal/privacy-policy" className="block">
+              Privacy Policy
+            </Link>
+            <Link href="/account/legal/terms" className="block">
+              Terms &amp; Conditions
+            </Link>
           </FooterAccordion>
         </div>
         <div className="border-t border-white/10 px-6 py-4 text-xs text-white/50 text-center">
