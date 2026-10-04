@@ -1,230 +1,466 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import AdminLayout from "../../../components/admin/AdminLayout";
+import { useRouter } from "next/router";
+import { Package, PackagePlus, Pencil, Plus, Trash2 } from "lucide-react";
+import AdminLayout, { useAdminUI } from "../../../components/admin/AdminLayout";
+import {
+  Card,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  Field,
+  Modal,
+  Pagination,
+  PageHeader,
+  StockBadge,
+  TableSkeleton,
+  btnOutline,
+  btnPrimary,
+  checkCls,
+  iconBtn,
+  inputCls,
+  tdCls,
+  thCls,
+} from "../../../components/admin/ui";
 import api from "../../../lib/api";
-import { Search } from "lucide-react";
-
-const CATEGORY_OPTIONS = [
-  { value: "", label: "All Categories" },
-  { value: "books", label: "Books" },
-  { value: "attars", label: "Attars" },
-  { value: "caps", label: "Caps" },
-  { value: "shalwar-kameez", label: "Shalwar Kameez" },
-  { value: "abayas", label: "Abayas" },
-  { value: "jilbabs", label: "Jilbabs" },
-  { value: "prayer-quran-accessories", label: "Prayer & Quran Accessories" },
-];
+import {
+  formatCurrency,
+  getApiError,
+  includesText,
+  paginate,
+  toArray,
+} from "../../../lib/admin";
 
 function RestockModal({ product, onClose, onSaved }) {
+  const { toast } = useAdminUI();
   const [quantity, setQuantity] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  async function handleSave() {
-    const addAmount = parseInt(quantity, 10);
-    if (!addAmount || addAmount <= 0) {
-      setError("Enter a valid quantity to add.");
+  async function handleSave(e) {
+    e.preventDefault();
+    const add = Number(quantity);
+    if (!Number.isInteger(add) || add <= 0) {
+      setError("Enter a whole number above 0.");
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      const newStock = product.stock + addAmount;
-      await api.put(`/admin/products/${product.id}`, { stock: newStock });
+      await api.put(`/admin/products/${product.id}`, {
+        stock: Number(product.stock) + add,
+      });
+      toast(`Added ${add} to ${product.name}.`);
       onSaved();
     } catch (err) {
-      setError("Could not update stock. Try again.");
-    } finally {
+      setError(getApiError(err, "Could not update stock."));
       setSaving(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-ink">Restock Product</h2>
-          <button onClick={onClose} className="text-neutral-400">
-            ✕
-          </button>
-        </div>
+    <Modal title="Restock product" onClose={onClose}>
+      <form onSubmit={handleSave}>
         <p className="font-medium text-ink">{product.name}</p>
-        <p className="text-sm text-neutral-500 mb-4">
+        <p className="mb-4 text-sm text-neutral-500">
           Current stock: {product.stock}
         </p>
-        <label className="text-sm text-neutral-600 mb-1 block">
-          Add stock quantity
-        </label>
-        <input
-          type="number"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          className="w-full border border-neutral-300 rounded px-3 py-2 mb-2"
-          placeholder="e.g. 10"
-        />
-        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full py-2 bg-spine text-white rounded font-medium mb-2 disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save Stock"}
-        </button>
-        <button
-          onClick={onClose}
-          className="w-full py-2 border border-neutral-300 rounded text-ink"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
+        <Field label="Quantity to add" htmlFor="restock-qty" error={error}>
+          <input
+            id="restock-qty"
+            type="number"
+            min="1"
+            step="1"
+            className={inputCls}
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="e.g. 10"
+          />
+        </Field>
+        <div className="mt-6 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className={btnOutline}>
+            Cancel
+          </button>
+          <button type="submit" disabled={saving} className={btnPrimary}>
+            {saving ? "Saving…" : "Save stock"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const router = useRouter();
+  const { toast } = useAdminUI();
+  const [state, setState] = useState({ status: "loading" });
+  const [categories, setCategories] = useState([]);
+  const [term, setTerm] = useState("");
   const [category, setCategory] = useState("");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState(() => new Set());
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [restockTarget, setRestockTarget] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  function loadProducts() {
-    setLoading(true);
-    api
-      .get("/admin/products")
-      .then((res) => setProducts(res.data))
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
-  }
-
-  useEffect(() => {
-    loadProducts();
+  const load = useCallback(() => {
+    setState((s) => (s.status === "ready" ? s : { status: "loading" }));
+    Promise.allSettled([
+      api.get("/admin/products"),
+      api.get("/categories"),
+    ]).then(([p, c]) => {
+      if (p.status === "rejected") {
+        setState({
+          status: "error",
+          error: getApiError(p.reason, "Could not load products."),
+        });
+        return;
+      }
+      setState({ status: "ready", products: toArray(p.value.data) });
+      if (c.status === "fulfilled") setCategories(toArray(c.value.data));
+    });
   }, []);
 
-  async function handleDelete(product) {
-    if (!confirm(`Are you sure you want to remove "${product.name}"?`)) return;
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // The Categories page links here with ?category=<slug>.
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (typeof router.query.category === "string")
+      setCategory(router.query.category);
+    if (typeof router.query.q === "string") setTerm(router.query.q);
+  }, [router.isReady, router.query.category, router.query.q]);
+
+  const products = state.status === "ready" ? state.products : [];
+
+  const filtered = useMemo(
+    () =>
+      products.filter(
+        (p) =>
+          (!term.trim() ||
+            includesText(p.name, term) ||
+            includesText(p.subcategory, term)) &&
+          (!category || p.category?.slug === category),
+      ),
+    [products, term, category],
+  );
+
+  const view = paginate(filtered, page);
+
+  // Changing what's visible resets to page 1 and clears the selection so a
+  // bulk action can never touch rows the admin can no longer see.
+  function changeFilter(fn) {
+    fn();
+    setPage(1);
+    setSelected(new Set());
+  }
+
+  const pageIds = view.rows.map((p) => p.id);
+  const allOnPage =
+    pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allOnPage) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  function toggleOne(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function confirmDelete() {
+    setBusy(true);
     try {
-      await api.delete(`/admin/products/${product.id}`);
-      loadProducts();
+      await api.delete(`/admin/products/${deleteTarget.id}`);
+      toast(`Deleted “${deleteTarget.name}”.`);
+      setSelected((s) => {
+        const n = new Set(s);
+        n.delete(deleteTarget.id);
+        return n;
+      });
+      setDeleteTarget(null);
+      load();
     } catch (err) {
-      alert("Could not delete product. Try again.");
+      toast(getApiError(err, "Could not delete the product."), "error");
+      setDeleteTarget(null);
+    } finally {
+      setBusy(false);
     }
   }
 
-  const filtered = products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !category || p.category?.slug === category;
-    return matchesSearch && matchesCategory;
-  });
+  async function confirmBulkDelete() {
+    setBusy(true);
+    const ids = [...selected];
+    const results = await Promise.allSettled(
+      ids.map((id) => api.delete(`/admin/products/${id}`)),
+    );
+    const failed = ids.filter((_, i) => results[i].status === "rejected");
+    const done = ids.length - failed.length;
+    if (done) toast(`Deleted ${done} product${done > 1 ? "s" : ""}.`);
+    if (failed.length)
+      toast(
+        `${failed.length} couldn’t be deleted. They’re still selected.`,
+        "error",
+      );
+    setSelected(new Set(failed));
+    setBulkOpen(false);
+    setBusy(false);
+    load();
+  }
+
+  const search = {
+    value: term,
+    onChange: (v) => changeFilter(() => setTerm(v)),
+    placeholder: "Search products",
+  };
 
   return (
-    <AdminLayout>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-semibold text-ink">Products</h1>
-        <Link
-          href="/admin/products/new"
-          className="px-4 py-2 bg-spine text-white rounded text-sm font-medium text-center"
-        >
-          + Add New Product
-        </Link>
-      </div>
+    <AdminLayout title="Products" search={search}>
+      <PageHeader
+        title="Products"
+        subtitle="Manage your store products."
+        action={
+          <Link href="/admin/products/new" className={btnPrimary}>
+            <Plus size={16} /> Add Product
+          </Link>
+        }
+      />
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex items-center border border-neutral-300 rounded px-3 flex-1 bg-white">
-          <Search size={16} className="text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 min-w-0 px-2 py-2 outline-none text-sm"
-          />
-        </div>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="border border-neutral-300 rounded px-3 py-2 text-sm bg-white w-full sm:w-auto"
-        >
-          {CATEGORY_OPTIONS.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
-        {loading ? (
-          <p className="p-6 text-neutral-400">Loading...</p>
-        ) : filtered.length === 0 ? (
-          <p className="p-6 text-neutral-400">No products found.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 text-left text-neutral-500">
-                <th className="p-3">Image</th>
-                <th className="p-3">Name</th>
-                <th className="p-3">Category</th>
-                <th className="p-3">Price</th>
-                <th className="p-3">Stock</th>
-                <th className="p-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-neutral-100">
-                  <td className="p-3">
-                    <div className="w-10 h-10 bg-neutral-100 rounded overflow-hidden">
-                      {p.imageUrls?.[0] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.imageUrls[0]}
-                          alt={p.name}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-3 text-ink font-medium">{p.name}</td>
-                  <td className="p-3 text-neutral-500 capitalize">
-                    {p.category?.name}
-                  </td>
-                  <td className="p-3 text-ink">₹{p.price}</td>
-                  <td className="p-3">
-                    <span
-                      className={
-                        p.stock <= 10 ? "text-red-600 font-medium" : "text-ink"
-                      }
-                    >
-                      {p.stock}
-                    </span>
-                  </td>
-                  <td className="p-3 flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => setRestockTarget(p)}
-                      className="px-3 py-1 border border-neutral-300 rounded text-xs"
-                    >
-                      Restock
-                    </button>
-                    <Link
-                      href={`/admin/products/${p.id}/edit`}
-                      className="px-3 py-1 border border-spine text-spine rounded text-xs"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(p)}
-                      className="px-3 py-1 border border-red-300 text-red-600 rounded text-xs"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <Card>
+        {categories.length > 0 && (
+          <div
+            className="flex gap-2 overflow-x-auto border-b border-neutral-100 p-4"
+            role="group"
+            aria-label="Filter by category"
+          >
+            {[{ id: "", slug: "", name: "All" }, ...categories].map((c) => {
+              const active = category === c.slug;
+              return (
+                <button
+                  key={c.id || "all"}
+                  onClick={() => changeFilter(() => setCategory(c.slug))}
+                  aria-pressed={active}
+                  className={`h-8 flex-shrink-0 rounded-full px-4 text-sm transition ${
+                    active
+                      ? "bg-spine text-white"
+                      : "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
+                  }`}
+                >
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
         )}
-      </div>
+
+        {selected.size > 0 && (
+          <div className="flex flex-wrap items-center gap-3 border-b border-neutral-100 bg-spine/5 px-4 py-2.5 text-sm">
+            <span className="font-medium text-spine">
+              {selected.size} selected
+            </span>
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="font-medium text-red-600 hover:underline"
+            >
+              Delete selected
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-neutral-500 hover:underline"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {state.status === "loading" && <TableSkeleton rows={6} cols={6} />}
+        {state.status === "error" && (
+          <ErrorState message={state.error} onRetry={load} />
+        )}
+
+        {state.status === "ready" &&
+          (products.length === 0 ? (
+            <EmptyState
+              icon={Package}
+              title="No products yet"
+              message="Add your first product to start selling."
+              action={
+                <Link href="/admin/products/new" className={btnPrimary}>
+                  <Plus size={16} /> Add Product
+                </Link>
+              }
+            />
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              icon={Package}
+              title="No matching products"
+              message="Try a different search or category."
+            />
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[820px]">
+                  <thead>
+                    <tr className="border-b border-neutral-100 bg-neutral-50/60">
+                      <th className={`${thCls} w-10`}>
+                        <input
+                          type="checkbox"
+                          className={checkCls}
+                          checked={allOnPage}
+                          onChange={toggleAll}
+                          aria-label="Select all products on this page"
+                        />
+                      </th>
+                      <th className={thCls}>Image</th>
+                      <th className={thCls}>Name</th>
+                      <th className={thCls}>Category</th>
+                      <th className={thCls}>Price</th>
+                      <th className={thCls}>Stock</th>
+                      <th className={thCls}>Status</th>
+                      <th className={`${thCls} text-right`}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100">
+                    {view.rows.map((p) => {
+                      const onSale = Number(p.originalPrice) > Number(p.price);
+                      return (
+                        <tr
+                          key={p.id}
+                          className={
+                            selected.has(p.id) ? "bg-spine/[0.03]" : undefined
+                          }
+                        >
+                          <td className={tdCls}>
+                            <input
+                              type="checkbox"
+                              className={checkCls}
+                              checked={selected.has(p.id)}
+                              onChange={() => toggleOne(p.id)}
+                              aria-label={`Select ${p.name}`}
+                            />
+                          </td>
+                          <td className={tdCls}>
+                            <div className="h-11 w-11 overflow-hidden rounded-lg bg-neutral-100">
+                              {p.imageUrls?.[0] && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={p.imageUrls[0]}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              )}
+                            </div>
+                          </td>
+                          <td className={tdCls}>
+                            <p className="max-w-[240px] font-medium leading-snug">
+                              {p.name}
+                            </p>
+                            {p.subcategory && (
+                              <p className="text-xs text-neutral-500">
+                                {p.subcategory}
+                              </p>
+                            )}
+                          </td>
+                          <td className={`${tdCls} text-neutral-600`}>
+                            {p.category?.name || "—"}
+                          </td>
+                          <td className={tdCls}>
+                            <span className="whitespace-nowrap">
+                              {formatCurrency(p.price)}
+                            </span>
+                            {onSale && (
+                              <span className="block whitespace-nowrap text-xs text-neutral-400 line-through">
+                                {formatCurrency(p.originalPrice)}
+                              </span>
+                            )}
+                          </td>
+                          <td className={tdCls}>{p.stock}</td>
+                          <td className={tdCls}>
+                            <StockBadge stock={p.stock} />
+                          </td>
+                          <td className={`${tdCls} text-right`}>
+                            <div className="inline-flex items-center gap-0.5">
+                              <button
+                                onClick={() => setRestockTarget(p)}
+                                aria-label={`Restock ${p.name}`}
+                                title="Restock"
+                                className={iconBtn}
+                              >
+                                <PackagePlus size={16} />
+                              </button>
+                              <Link
+                                href={`/admin/products/${p.id}/edit`}
+                                aria-label={`Edit ${p.name}`}
+                                title="Edit"
+                                className={iconBtn}
+                              >
+                                <Pencil size={16} />
+                              </Link>
+                              <button
+                                onClick={() => setDeleteTarget(p)}
+                                aria-label={`Delete ${p.name}`}
+                                title="Delete"
+                                className={`${iconBtn} hover:!bg-red-50 hover:!text-red-600`}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                page={view.page}
+                pageCount={view.pageCount}
+                onPage={setPage}
+                total={filtered.length}
+                shown={view.rows.length}
+                start={view.start}
+                noun="products"
+              />
+            </>
+          ))}
+      </Card>
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Delete product?"
+          message={
+            <>
+              <strong className="text-ink">{deleteTarget.name}</strong> will be
+              removed from the store. This can’t be undone.
+            </>
+          }
+          busy={busy}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {bulkOpen && (
+        <ConfirmDialog
+          title={`Delete ${selected.size} product${selected.size > 1 ? "s" : ""}?`}
+          message="The selected products will be removed from the store. This can’t be undone."
+          confirmLabel={`Delete ${selected.size}`}
+          busy={busy}
+          onConfirm={confirmBulkDelete}
+          onCancel={() => setBulkOpen(false)}
+        />
+      )}
 
       {restockTarget && (
         <RestockModal
@@ -232,7 +468,7 @@ export default function AdminProducts() {
           onClose={() => setRestockTarget(null)}
           onSaved={() => {
             setRestockTarget(null);
-            loadProducts();
+            load();
           }}
         />
       )}

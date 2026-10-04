@@ -15,7 +15,60 @@ import {
 } from "lucide-react";
 
 const SPINE = "#1e3d32";
+
+// Address book is stored server-side (per user) via /api/addresses:
+//   GET    /addresses              list the signed-in user's addresses
+//   POST   /addresses              create
+//   PUT    /addresses/:id          update
+//   DELETE /addresses/:id          delete
+//   PUT    /addresses/:id/default  mark as default
+// Behaviour confirmed with backend: first address auto-becomes default;
+// deleting the default promotes the oldest remaining one (we re-fetch after
+// every change, so the UI always shows what the server decided). `area` is
+// optional/nullable; phone/pincode are only validated client-side for now.
+// If field names ever change, adjust ONLY fromApi/toApi.
+
 const LABEL_ICONS = { Home, Work: Briefcase, Other: Building };
+
+function fromApi(a) {
+  return {
+    id: a.id,
+    label: a.label || "Home",
+    fullName: a.fullName || "",
+    phone: a.phone || "",
+    street: a.street || "",
+    area: a.area || "",
+    city: a.city || "",
+    state: a.state || "",
+    pincode: a.pincode || "",
+    isDefault: !!a.isDefault,
+  };
+}
+
+// Only send fields the backend knows about (never id/isDefault from the form;
+// default is changed through its own endpoint).
+function toApi(form) {
+  return {
+    label: form.label,
+    fullName: form.fullName.trim(),
+    phone: form.phone.trim(),
+    street: form.street.trim(),
+    area: form.area.trim() || null, // nullable on the backend
+    city: form.city.trim(),
+    state: form.state.trim(),
+    pincode: form.pincode.trim(),
+  };
+}
+
+function errorMessage(err, fallback) {
+  if (err.response) {
+    return err.response.data?.error || `${fallback} (${err.response.status}).`;
+  }
+  if (err.request) {
+    return "Could not reach the server. Is the backend running and NEXT_PUBLIC_API_URL correct?";
+  }
+  return "Something went wrong: " + err.message;
+}
 
 const EMPTY_FORM = {
   label: "Home",
@@ -27,12 +80,6 @@ const EMPTY_FORM = {
   state: "",
   pincode: "",
 };
-
-function extractErrorMessage(err, fallback) {
-  if (err.response) return err.response.data?.error || fallback;
-  if (err.request) return "Could not reach the server. Please try again.";
-  return fallback;
-}
 
 function AddressesHeader({ router }) {
   return (
@@ -57,29 +104,35 @@ export default function SavedAddresses() {
   const [checked, setChecked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [addresses, setAddresses] = useState([]);
-  const [loadError, setLoadError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState(null);
+  const [listError, setListError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  function loadAddresses() {
-    api
-      .get("/addresses")
-      .then((res) => setAddresses(Array.isArray(res.data) ? res.data : []))
-      .catch((err) =>
-        setLoadError(
-          extractErrorMessage(err, "Could not load your addresses."),
-        ),
-      );
+  // Always re-read from the server after a change so the UI reflects the
+  // backend's truth (e.g. which address ended up as default).
+  async function fetchAddresses() {
+    setLoading(true);
+    setListError(null);
+    try {
+      const res = await api.get("/addresses");
+      // API returns a plain array (confirmed in API_REFERENCE.md).
+      setAddresses(res.data.map(fromApi));
+    } catch (err) {
+      setListError(errorMessage(err, "Couldn't load your addresses"));
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     const token = window.localStorage.getItem("token");
     setIsLoggedIn(!!token);
-    if (token) loadAddresses();
     setChecked(true);
+    if (token) fetchAddresses();
   }, []);
 
   function openAddForm() {
@@ -97,26 +150,27 @@ export default function SavedAddresses() {
   }
 
   async function handleDelete(id) {
+    setListError(null);
     try {
       await api.delete(`/addresses/${id}`);
-      loadAddresses();
+      await fetchAddresses();
     } catch (err) {
-      setLoadError(extractErrorMessage(err, "Could not delete this address."));
+      setListError(errorMessage(err, "Couldn't delete address"));
     }
   }
 
   async function handleSetDefault(id) {
+    setListError(null);
     try {
       await api.put(`/addresses/${id}/default`);
-      loadAddresses();
+      await fetchAddresses();
     } catch (err) {
-      setLoadError(extractErrorMessage(err, "Could not set this as default."));
+      setListError(errorMessage(err, "Couldn't set default address"));
     }
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError(null);
     if (
       !form.fullName.trim() ||
       !form.phone.trim() ||
@@ -137,28 +191,18 @@ export default function SavedAddresses() {
       return;
     }
 
-    const body = {
-      label: form.label,
-      fullName: form.fullName.trim(),
-      phone: form.phone.trim(),
-      street: form.street.trim(),
-      area: form.area.trim(),
-      city: form.city.trim(),
-      state: form.state.trim(),
-      pincode: form.pincode.trim(),
-    };
-
+    setError(null);
     setSaving(true);
     try {
       if (editingId) {
-        await api.put(`/addresses/${editingId}`, body);
+        await api.put(`/addresses/${editingId}`, toApi(form));
       } else {
-        await api.post("/addresses", body);
+        await api.post("/addresses", toApi(form));
       }
-      loadAddresses();
       setShowForm(false);
+      await fetchAddresses();
     } catch (err) {
-      setError(extractErrorMessage(err, "Could not save this address."));
+      setError(errorMessage(err, "Couldn't save address"));
     } finally {
       setSaving(false);
     }
@@ -191,8 +235,6 @@ export default function SavedAddresses() {
     <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
       <AddressesHeader router={router} />
       <main className="max-w-xl mx-auto px-4 pb-10">
-        {loadError && <p className="text-red-600 text-sm mb-4">{loadError}</p>}
-
         <button
           onClick={openAddForm}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-white text-sm font-medium mb-5 hover:opacity-90 transition-opacity"
@@ -201,7 +243,15 @@ export default function SavedAddresses() {
           <Plus size={16} /> Add New Address
         </button>
 
-        {addresses.length === 0 && !showForm && (
+        {listError && <p className="text-red-600 text-sm mb-3">{listError}</p>}
+
+        {loading && addresses.length === 0 && (
+          <p className="text-center text-neutral-500 py-10">
+            Loading addresses…
+          </p>
+        )}
+
+        {!loading && !listError && addresses.length === 0 && !showForm && (
           <div className="text-center py-16 border border-dashed border-neutral-300 rounded-lg bg-white">
             <MapPin size={32} className="text-neutral-300 mx-auto mb-3" />
             <p className="text-neutral-500">No saved addresses yet.</p>
@@ -395,11 +445,11 @@ export default function SavedAddresses() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 text-sm rounded-lg text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-4 py-2 text-sm rounded-lg text-white hover:opacity-90 transition-opacity disabled:opacity-60"
                 style={{ backgroundColor: SPINE }}
               >
                 {saving
-                  ? "Saving..."
+                  ? "Saving…"
                   : editingId
                     ? "Save Changes"
                     : "Add Address"}

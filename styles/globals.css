@@ -70,3 +70,12 @@ body {
   overflow-x: hidden;
   overflow-x: clip;
 }
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Admin pages have no bottom tab bar, so no space needs reserving. */
+  body.admin-route {
+    padding-bottom: 0;
+  }
+}
