@@ -1,33 +1,23 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import AdminLayout from "../../../components/admin/AdminLayout";
+import AdminLayout, { useAdminUI } from "../../../components/admin/AdminLayout";
+import ProductForm from "../../../components/admin/ProductForm";
+import { BackLink, PageHeader } from "../../../components/admin/ui";
 import api from "../../../lib/api";
+import { toArray } from "../../../lib/admin";
 
 export default function NewProduct() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const { toast } = useAdminUI();
   const [categories, setCategories] = useState([]);
   const [categoriesError, setCategoriesError] = useState(null);
-  const [subcategory, setSubcategory] = useState("");
-  const [price, setPrice] = useState("");
-  const [originalPrice, setOriginalPrice] = useState("");
-  const [stock, setStock] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [attributes, setAttributes] = useState([{ key: "", value: "" }]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
 
-  // The backend requires categoryId (a real database UUID), not a slug —
-  // sending the slug string here previously meant every product creation
-  // attempt failed with categoryId: undefined. Fetch the real categories
-  // so the dropdown always has valid, current IDs.
+  // The backend needs a real category id (UUID), so the dropdown is built from
+  // the live category list rather than hardcoded names.
   useEffect(() => {
     api
       .get("/categories")
-      .then((res) => setCategories(res.data))
+      .then((res) => setCategories(toArray(res.data)))
       .catch(() =>
         setCategoriesError(
           "Could not load categories. Refresh the page to try again.",
@@ -35,270 +25,25 @@ export default function NewProduct() {
       );
   }, []);
 
-  function handleImageChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  }
-
-  function updateAttribute(index, field, value) {
-    setAttributes((prev) =>
-      prev.map((attr, i) => (i === index ? { ...attr, [field]: value } : attr)),
-    );
-  }
-
-  function addAttributeRow() {
-    setAttributes((prev) => [...prev, { key: "", value: "" }]);
-  }
-
-  function removeAttributeRow(index) {
-    setAttributes((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError(null);
-
-    if (!name || !categoryId || !price || !stock || !description) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      let imageUrl = null;
-      if (imageFile) {
-        const formData = new FormData();
-        formData.append("image", imageFile);
-        const uploadRes = await api.post("/admin/upload-image", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        imageUrl = uploadRes.data.url;
-      }
-
-      const attributesObject = {};
-      attributes.forEach((attr) => {
-        if (attr.key.trim()) attributesObject[attr.key.trim()] = attr.value;
-      });
-
-      await api.post("/admin/products", {
-        name,
-        categoryId,
-        subcategory: subcategory.trim() || null,
-        price: parseFloat(price),
-        originalPrice: originalPrice ? parseFloat(originalPrice) : null,
-        stock: parseInt(stock, 10),
-        description,
-        imageUrls: imageUrl ? [imageUrl] : [],
-        attributes: attributesObject,
-      });
-
-      router.push("/admin/products");
-    } catch (err) {
-      // Backend returns { error: "..." }, not { message: "..." }.
-      setError(
-        err.response?.data?.error ||
-          "Could not create product. Check the details and try again.",
-      );
-    } finally {
-      setSaving(false);
-    }
+  async function handleSubmit(payload) {
+    await api.post("/admin/products", payload);
+    toast("Product added.");
+    router.push("/admin/products");
   }
 
   return (
-    <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-ink">Add New Product</h1>
-        <button
-          onClick={() => router.push("/admin/products")}
-          className="text-sm text-spine"
-        >
-          ← Back to Products
-        </button>
-      </div>
-
-      <form
+    <AdminLayout title="Add Product">
+      <PageHeader
+        back={<BackLink href="/admin/products">Back to Products</BackLink>}
+        title="Add Product"
+        subtitle="Create a new product."
+      />
+      <ProductForm
+        categories={categories}
+        categoriesError={categoriesError}
         onSubmit={handleSubmit}
-        className="bg-white border border-neutral-200 rounded-lg p-6 max-w-3xl"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-sm text-neutral-600 mb-1 block">
-              Product Name *
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter product name"
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-neutral-600 mb-1 block">
-              Category *
-            </label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-            >
-              <option value="">Select category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            {categoriesError && (
-              <p className="text-xs text-red-600 mt-1">{categoriesError}</p>
-            )}
-          </div>
-          <div>
-            <label className="text-sm text-neutral-600 mb-1 block">
-              Subcategory (optional)
-            </label>
-            <input
-              type="text"
-              value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              placeholder="e.g. Quran, Hadith"
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-neutral-600 mb-1 block">
-              Price (₹) *
-            </label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="Enter price"
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-neutral-600 mb-1 block">
-              Original Price (optional, for showing a discount)
-            </label>
-            <input
-              type="number"
-              value={originalPrice}
-              onChange={(e) => setOriginalPrice(e.target.value)}
-              placeholder="Leave blank if not on sale"
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-neutral-600 mb-1 block">
-              Stock *
-            </label>
-            <input
-              type="number"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-              placeholder="Enter stock quantity"
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <label className="text-sm text-neutral-600 mb-1 block">
-            Description *
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter product description..."
-            rows={3}
-            className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-sm text-neutral-600 mb-1 block">
-              Product Image
-            </label>
-            <label className="border border-dashed border-neutral-300 rounded-lg h-32 flex flex-col items-center justify-center cursor-pointer text-center text-sm text-neutral-400 overflow-hidden">
-              {imagePreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <>
-                  <p>Click to upload or drag and drop</p>
-                  <p className="text-xs">PNG, JPG up to 5MB</p>
-                </>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </label>
-          </div>
-
-          <div>
-            <label className="text-sm text-neutral-600 mb-1 block">
-              Attributes (optional)
-            </label>
-            <div className="flex flex-col gap-2">
-              {attributes.map((attr, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="e.g. Author"
-                    value={attr.key}
-                    onChange={(e) => updateAttribute(i, "key", e.target.value)}
-                    className="w-1/3 border border-neutral-300 rounded px-2 py-1.5 text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Enter value"
-                    value={attr.value}
-                    onChange={(e) =>
-                      updateAttribute(i, "value", e.target.value)
-                    }
-                    className="flex-1 border border-neutral-300 rounded px-2 py-1.5 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeAttributeRow(i)}
-                    className="text-neutral-400 hover:text-red-600"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addAttributeRow}
-                className="text-sm text-spine border border-spine rounded px-3 py-1.5 self-start"
-              >
-                + Add Attribute
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-6 py-2.5 bg-spine text-white rounded font-medium disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Add Product"}
-        </button>
-      </form>
+        submitLabel="Save Product"
+      />
     </AdminLayout>
   );
 }

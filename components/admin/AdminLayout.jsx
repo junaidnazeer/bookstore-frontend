@@ -1,140 +1,395 @@
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Users,
+  LayoutGrid,
+  Settings,
   LogOut,
   Menu,
   X,
+  Search,
+  ChevronDown,
+  Store,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import MosqueIcon from "../MosqueIcon";
+import api from "../../lib/api";
+import { clearAdminSession } from "../../lib/admin";
+import { subscribeToasts, toast } from "../../lib/admin-toast";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/categories", label: "Categories", icon: LayoutGrid },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export default function AdminLayout({ children }) {
+const EXPANDED_KEY = "adminSidebarExpanded";
+const DESKTOP_QUERY = "(min-width: 1024px)";
+
+// Every admin page renders its own <AdminLayout>, so it remounts on each
+// navigation. This flag survives client-side navigation, which stops the
+// "Checking access..." flash on every click. It is false on the server and on
+// the first client render, so hydration still matches.
+let authedThisSession = false;
+
+// Kept as a hook so pages read naturally: const { toast } = useAdminUI();
+// It works anywhere (see lib/admin-toast.js), not just below the layout.
+export const useAdminUI = () => ({ toast });
+
+function readExpanded() {
+  try {
+    return window.localStorage.getItem(EXPANDED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export default function AdminLayout({ children, title, search }) {
   const router = useRouter();
-  const [checked, setChecked] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [checked, setChecked] = useState(
+    () => typeof window !== "undefined" && authedThisSession,
+  );
+  // Desktop: sidebar is hidden by default and slides in when opened, like the
+  // storefront menu. The choice is remembered while moving between admin pages.
+  const [expanded, setExpanded] = useState(() =>
+    typeof window !== "undefined" && authedThisSession ? readExpanded() : false,
+  );
+  // Tablet / phone: drawer, hidden by default.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  const menuRef = useRef(null);
+
+  /* ---------- session ---------- */
+  const endSession = useCallback(() => {
+    clearAdminSession();
+    authedThisSession = false;
+    router.replace("/admin/login");
+  }, [router]);
 
   useEffect(() => {
     const role = window.localStorage.getItem("role");
-    if (role !== "ADMIN") {
-      router.push("/admin/login");
+    const token = window.localStorage.getItem("token");
+    if (role !== "ADMIN" || !token) {
+      authedThisSession = false;
+      router.replace("/admin/login");
       return;
     }
+    authedThisSession = true;
+    setExpanded(readExpanded());
     setChecked(true);
-  }, [router]);
-
-  // Close the mobile sidebar automatically on route change
-  useEffect(() => {
-    setSidebarOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.pathname]);
 
-  function handleLogout() {
-    window.localStorage.removeItem("token");
-    window.localStorage.removeItem("role");
-    router.push("/login");
+  // The role in localStorage is only a UI hint. The backend is the authority:
+  // if any admin API call comes back 401 (expired) or 403 (not an admin), the
+  // session is cleared and the user is sent back to the admin login.
+  useEffect(() => {
+    const id = api.interceptors.response.use(
+      (res) => res,
+      (err) => {
+        const status = err?.response?.status;
+        if (
+          (status === 401 || status === 403) &&
+          window.localStorage.getItem("token")
+        ) {
+          endSession();
+        }
+        return Promise.reject(err);
+      },
+    );
+    return () => api.interceptors.response.eject(id);
+  }, [endSession]);
+
+  /* ---------- drawer / menu behaviour ---------- */
+  useEffect(() => {
+    const close = () => {
+      setDrawerOpen(false);
+      setMenuOpen(false);
+    };
+    router.events.on("routeChangeStart", close);
+    return () => router.events.off("routeChangeStart", close);
+  }, [router.events]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      setDrawerOpen(false);
+      setMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [menuOpen]);
+
+  // Lock page scroll behind the drawer; drop the drawer if the window grows
+  // into the desktop layout.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const mq = window.matchMedia(DESKTOP_QUERY);
+    const onChange = () => mq.matches && setDrawerOpen(false);
+    mq.addEventListener("change", onChange);
+    return () => {
+      document.body.style.overflow = prev;
+      mq.removeEventListener("change", onChange);
+    };
+  }, [drawerOpen]);
+
+  function closeSidebar() {
+    setDrawerOpen(false);
+    if (expanded) {
+      setExpanded(false);
+      try {
+        window.localStorage.setItem(EXPANDED_KEY, "0");
+      } catch {}
+    }
   }
+
+  function toggleSidebar() {
+    if (window.matchMedia(DESKTOP_QUERY).matches) {
+      setExpanded((v) => {
+        try {
+          window.localStorage.setItem(EXPANDED_KEY, v ? "0" : "1");
+        } catch {}
+        return !v;
+      });
+    } else {
+      setDrawerOpen((v) => !v);
+    }
+  }
+
+  useEffect(
+    () =>
+      subscribeToasts((t) => {
+        setToasts((list) =>
+          list.some((x) => x.id === t.id) ? list : [...list, t],
+        );
+        setTimeout(
+          () => setToasts((list) => list.filter((x) => x.id !== t.id)),
+          4500,
+        );
+      }),
+    [],
+  );
 
   if (!checked) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-neutral-400">
+      <div className="flex min-h-screen items-center justify-center bg-[#f7f3ea] text-neutral-400">
         Checking access...
       </div>
     );
   }
 
-  const sidebarContent = (
-    <>
-      <div className="px-5 py-5 flex items-center justify-between border-b border-neutral-200">
-        <div className="flex items-center gap-2">
-          <MosqueIcon size={28} className="text-spine" />
-          <div>
-            <p className="font-serif text-sm text-spine leading-tight">
-              Maktabah Islamiyah
-            </p>
-            <p className="text-[10px] text-neutral-400">Admin</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setSidebarOpen(false)}
-          className="md:hidden text-neutral-400"
-        >
-          <X size={20} />
-        </button>
-      </div>
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const active = router.pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                active
-                  ? "bg-spine text-white shadow-sm"
-                  : "text-ink hover:bg-neutral-100"
-              }`}
-            >
-              <Icon size={16} />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="px-3 py-4 border-t border-neutral-200">
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-neutral-500 hover:bg-neutral-100 w-full transition-colors"
-        >
-          <LogOut size={16} />
-          Logout
-        </button>
-      </div>
-    </>
-  );
+  const isActive = (href) =>
+    router.pathname === href || router.pathname.startsWith(href + "/");
 
   return (
-    <div className="min-h-screen flex">
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white border-b border-neutral-200 flex items-center justify-between px-4 z-30">
-        <div className="flex items-center gap-2">
-          <MosqueIcon size={22} className="text-spine" />
-          <p className="font-serif text-sm text-spine">Admin</p>
-        </div>
-        <button onClick={() => setSidebarOpen(true)} className="text-ink">
-          <Menu size={22} />
-        </button>
-      </div>
+    <>
+      <Head>
+        <title>
+          {title
+            ? `${title} | Admin | Maktabah Islamiyah`
+            : "Admin | Maktabah Islamiyah"}
+        </title>
+      </Head>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
+      <div className="min-h-screen overflow-x-clip bg-[#f7f3ea]">
+        {/* Backdrop (tablet / phone only) */}
         <div
-          className="md:hidden fixed inset-0 bg-black/40 z-40"
-          onClick={() => setSidebarOpen(false)}
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden="true"
+          className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 lg:hidden ${
+            drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
         />
-      )}
 
-      {/* Sidebar: static on desktop, slide-in on mobile */}
-      <aside
-        className={`w-64 md:w-56 bg-white border-r border-neutral-200 flex flex-col shadow-sm fixed md:static inset-y-0 left-0 z-50 transition-transform duration-200 md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        {sidebarContent}
-      </aside>
+        {/* Sidebar */}
+        <aside
+          aria-label="Admin navigation"
+          className={`fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col overflow-y-auto bg-spine text-white transition-[translate,visibility] duration-200 lg:w-[248px] ${
+            drawerOpen
+              ? "visible translate-x-0 shadow-2xl"
+              : "invisible -translate-x-full"
+          } ${expanded ? "lg:visible lg:translate-x-0 lg:shadow-none" : "lg:invisible lg:-translate-x-full"}`}
+        >
+          <div className="flex h-16 flex-shrink-0 items-center justify-between gap-2 border-b border-white/10 px-5">
+            <Link
+              href="/admin/dashboard"
+              className="flex min-w-0 items-center gap-3"
+            >
+              <MosqueIcon size={32} className="flex-shrink-0 text-white" />
+              <div className="min-w-0">
+                <p className="truncate font-serif text-[15px] font-semibold leading-tight">
+                  Maktabah Islamiyah
+                </p>
+                <p className="text-[11px] tracking-wide text-white/60">
+                  Admin Panel
+                </p>
+              </div>
+            </Link>
+            <button
+              onClick={closeSidebar}
+              aria-label="Close menu"
+              className="flex-shrink-0 rounded-md p-1 text-white/60 transition hover:text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
-      <main
-        className="flex-1 p-4 pt-20 md:p-8 md:pt-8"
-        style={{ backgroundColor: "#F3ECDD" }}
-      >
-        {children}
-      </main>
-    </div>
+          <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
+            {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setDrawerOpen(false)}
+                aria-current={isActive(href) ? "page" : undefined}
+                className={`flex h-11 items-center gap-3 rounded-lg px-3.5 text-sm transition-colors ${
+                  isActive(href)
+                    ? "bg-white/15 font-medium text-white"
+                    : "text-white/75 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <Icon size={20} className="flex-shrink-0" />
+                <span className="truncate">{label}</span>
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex-shrink-0 border-t border-white/10 px-3 py-4">
+            <button
+              onClick={endSession}
+              className="flex h-11 w-full items-center gap-3 rounded-lg px-3.5 text-sm text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <LogOut size={20} className="flex-shrink-0" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </aside>
+
+        {/* Main column */}
+        <div
+          className={`min-w-0 transition-[padding] duration-200 ${
+            expanded ? "lg:pl-[248px]" : ""
+          }`}
+        >
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-neutral-200/70 bg-[#f7f3ea]/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+            <button
+              onClick={toggleSidebar}
+              aria-label="Toggle sidebar"
+              aria-expanded={drawerOpen || expanded}
+              className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-lg border border-neutral-200 bg-white text-spine transition hover:bg-neutral-50"
+            >
+              <Menu size={20} />
+            </button>
+
+            <div className="flex min-w-0 flex-1 justify-center">
+              {search && (
+                <form
+                  role="search"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    search.onSubmit?.(search.value);
+                  }}
+                  className="relative w-full max-w-xl"
+                >
+                  <Search
+                    size={16}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"
+                  />
+                  <input
+                    type="search"
+                    value={search.value}
+                    onChange={(e) => search.onChange(e.target.value)}
+                    placeholder={search.placeholder}
+                    aria-label={search.placeholder}
+                    className="h-10 w-full rounded-full border border-neutral-200 bg-white pl-10 pr-4 text-sm text-ink outline-none transition placeholder:text-neutral-400 focus:border-spine focus:ring-2 focus:ring-spine/15"
+                  />
+                </form>
+              )}
+            </div>
+
+            <div className="relative flex-shrink-0" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                className="flex h-10 items-center gap-2 rounded-full border border-neutral-200 bg-white pl-1.5 pr-3 text-sm text-ink transition hover:bg-neutral-50"
+              >
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-spine text-xs font-medium text-white">
+                  A
+                </span>
+                <span className="hidden sm:inline">Admin</span>
+                <ChevronDown size={15} className="text-neutral-500" />
+              </button>
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-12 z-50 w-48 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
+                >
+                  <Link
+                    href="/"
+                    role="menuitem"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink hover:bg-neutral-50"
+                  >
+                    <Store size={16} className="text-neutral-500" /> View Store
+                  </Link>
+                  <button
+                    role="menuitem"
+                    onClick={endSession}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut size={16} /> Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </header>
+
+          <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        </div>
+
+        {/* Toasts */}
+        <div className="pointer-events-none fixed bottom-4 right-4 z-[80] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-2">
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              role="status"
+              className={`pointer-events-auto flex items-start gap-2.5 rounded-lg border px-4 py-3 text-sm shadow-lg ${
+                t.type === "error"
+                  ? "border-red-200 bg-red-50 text-red-800"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-900"
+              }`}
+            >
+              {t.type === "error" ? (
+                <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+              ) : (
+                <CheckCircle2 size={18} className="mt-0.5 flex-shrink-0" />
+              )}
+              <span>{t.message}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
