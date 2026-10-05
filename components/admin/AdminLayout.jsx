@@ -22,6 +22,7 @@ import MosqueIcon from "../MosqueIcon";
 import api from "../../lib/api";
 import { clearAdminSession } from "../../lib/admin";
 import { subscribeToasts, toast } from "../../lib/admin-toast";
+import { BackLink } from "./ui";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -32,6 +33,17 @@ const NAV_ITEMS = [
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
+// Section pages opened from the sidebar or a dashboard link get a "back" link at
+// the top. (Detail and form pages draw their own, because where "back" goes
+// depends on where you came from.)
+const SECTION_PAGES = [
+  "/admin/products",
+  "/admin/orders",
+  "/admin/users",
+  "/admin/categories",
+  "/admin/settings",
+];
+
 const EXPANDED_KEY = "adminSidebarExpanded";
 const DESKTOP_QUERY = "(min-width: 1024px)";
 
@@ -40,6 +52,9 @@ const DESKTOP_QUERY = "(min-width: 1024px)";
 // "Checking access..." flash on every click. It is false on the server and on
 // the first client render, so hydration still matches.
 let authedThisSession = false;
+// Who is logged in, from GET /auth/me. Cached so it isn't re-fetched on every
+// page change.
+let cachedProfile = null;
 
 // Kept as a hook so pages read naturally: const { toast } = useAdminUI();
 // It works anywhere (see lib/admin-toast.js), not just below the layout.
@@ -67,12 +82,17 @@ export default function AdminLayout({ children, title, search }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [profile, setProfile] = useState(() =>
+    typeof window !== "undefined" ? cachedProfile : null,
+  );
+  const [profileFailed, setProfileFailed] = useState(false);
   const menuRef = useRef(null);
 
   /* ---------- session ---------- */
   const endSession = useCallback(() => {
     clearAdminSession();
     authedThisSession = false;
+    cachedProfile = null;
     router.replace("/admin/login");
   }, [router]);
 
@@ -109,6 +129,30 @@ export default function AdminLayout({ children, title, search }) {
     );
     return () => api.interceptors.response.eject(id);
   }, [endSession]);
+
+  // Ask the backend who this is. The role stored in the browser is only a hint,
+  // so a non-admin account is signed out here straight away.
+  useEffect(() => {
+    if (!checked || cachedProfile) return;
+    let cancelled = false;
+    api
+      .get("/auth/me")
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data?.role !== "ADMIN") {
+          endSession();
+          return;
+        }
+        cachedProfile = res.data;
+        setProfile(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setProfileFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [checked, endSession]);
 
   /* ---------- drawer / menu behaviour ---------- */
   useEffect(() => {
@@ -200,6 +244,19 @@ export default function AdminLayout({ children, title, search }) {
     );
   }
 
+  const displayName = (profile?.name || "").trim();
+  const initial = (displayName[0] || "A").toUpperCase();
+  const profileLoading = !profile && !profileFailed;
+  // The Categories page links to "its" products, so go back there in that case.
+  const fromCategories =
+    router.pathname === "/admin/products" &&
+    router.isReady &&
+    typeof router.query.category === "string";
+  const backTarget = SECTION_PAGES.includes(router.pathname)
+    ? fromCategories
+      ? { href: "/admin/categories", label: "Back to Categories" }
+      : { href: "/admin/dashboard", label: "Back to Dashboard" }
+    : null;
   const isActive = (href) =>
     router.pathname === href || router.pathname.startsWith(href + "/");
 
@@ -335,17 +392,33 @@ export default function AdminLayout({ children, title, search }) {
                 aria-expanded={menuOpen}
                 className="flex h-10 items-center gap-2 rounded-full border border-neutral-200 bg-white pl-1.5 pr-3 text-sm text-ink transition hover:bg-neutral-50"
               >
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-spine text-xs font-medium text-white">
-                  A
+                <span
+                  className={`grid h-7 w-7 flex-shrink-0 place-items-center rounded-full bg-spine text-xs font-medium text-white ${
+                    profileLoading ? "animate-pulse opacity-60" : ""
+                  }`}
+                >
+                  {profileLoading ? "" : initial}
                 </span>
-                <span className="hidden sm:inline">Admin</span>
+                <span className="hidden max-w-[150px] truncate sm:inline">
+                  {profileLoading ? "" : displayName || "Admin"}
+                </span>
                 <ChevronDown size={15} className="text-neutral-500" />
               </button>
               {menuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-12 z-50 w-48 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
+                  className="absolute right-0 top-12 z-50 w-60 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
                 >
+                  <div className="border-b border-neutral-100 px-4 py-3">
+                    <p className="truncate text-sm font-medium text-ink">
+                      {displayName || "Admin"}
+                    </p>
+                    {profile?.email && (
+                      <p className="truncate text-xs text-neutral-500">
+                        {profile.email}
+                      </p>
+                    )}
+                  </div>
                   <Link
                     href="/"
                     role="menuitem"
@@ -365,7 +438,12 @@ export default function AdminLayout({ children, title, search }) {
             </div>
           </header>
 
-          <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+          <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8">
+            {backTarget && (
+              <BackLink href={backTarget.href}>{backTarget.label}</BackLink>
+            )}
+            {children}
+          </main>
         </div>
 
         {/* Toasts */}

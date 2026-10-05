@@ -32,6 +32,13 @@ import {
   toArray,
 } from "../../../lib/admin";
 
+// Where "back" leads depends on how you got here (links add ?from=...).
+const BACK_TARGETS = {
+  dashboard: { href: "/admin/dashboard", label: "Back to Dashboard" },
+  users: { href: "/admin/users", label: "Back to Users" },
+};
+const DEFAULT_BACK = { href: "/admin/orders", label: "Back to Orders" };
+
 const FLOW = [
   { status: "PENDING", label: "Order placed" },
   { status: "PAID", label: "Payment received" },
@@ -56,6 +63,10 @@ function variantText(item) {
 export default function AdminOrderDetail() {
   const router = useRouter();
   const { id } = router.query;
+  const back =
+    (typeof router.query.from === "string" &&
+      BACK_TARGETS[router.query.from]) ||
+    DEFAULT_BACK;
   const [state, setState] = useState({ status: "loading" });
   const [editing, setEditing] = useState(false);
 
@@ -112,7 +123,7 @@ export default function AdminOrderDetail() {
   return (
     <AdminLayout title={order ? `Order #${orderRef(order)}` : "Order"}>
       <PageHeader
-        back={<BackLink href="/admin/orders">Back to Orders</BackLink>}
+        back={<BackLink href={back.href}>{back.label}</BackLink>}
         title={order ? `#${orderRef(order)}` : "Order"}
         subtitle={order ? formatDate(orderDate(order), true) : undefined}
         action={

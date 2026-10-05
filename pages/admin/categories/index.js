@@ -10,9 +10,11 @@ import {
   PageHeader,
   Pagination,
   TableSkeleton,
+  btnSmall,
   iconBtn,
   tdCls,
   thCls,
+  useIsDesktop,
 } from "../../../components/admin/ui";
 import api from "../../../lib/api";
 import {
@@ -25,6 +27,7 @@ import {
 const MAX_SUBS = 4;
 
 export default function AdminCategories() {
+  const isDesktop = useIsDesktop();
   const [state, setState] = useState({ status: "loading" });
   const [term, setTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -132,42 +135,99 @@ export default function AdminCategories() {
             />
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px]">
-                  <thead>
-                    <tr className="border-b border-neutral-100 bg-neutral-50/60">
-                      <th className={thCls}>Image</th>
-                      <th className={thCls}>Name</th>
-                      <th className={thCls}>Products</th>
-                      <th className={thCls}>Subcategories</th>
-                      <th className={`${thCls} text-right`}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {view.rows.map((r) => (
-                      <tr key={r.id}>
-                        <td className={tdCls}>
-                          <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-lg bg-neutral-100 text-neutral-400">
-                            {r.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={r.image}
-                                alt=""
-                                className="h-full w-full object-cover"
-                              />
+              {isDesktop ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px]">
+                    <thead>
+                      <tr className="border-b border-neutral-100 bg-neutral-50/60">
+                        <th className={thCls}>Image</th>
+                        <th className={thCls}>Name</th>
+                        <th className={thCls}>Products</th>
+                        <th className={thCls}>Subcategories</th>
+                        <th className={`${thCls} text-right`}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {view.rows.map((r) => (
+                        <tr key={r.id}>
+                          <td className={tdCls}>
+                            <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-lg bg-neutral-100 text-neutral-400">
+                              {r.image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={r.image}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <LayoutGrid size={18} />
+                              )}
+                            </div>
+                          </td>
+                          <td className={`${tdCls} font-medium`}>{r.name}</td>
+                          <td className={tdCls}>{r.count ?? "—"}</td>
+                          <td className={tdCls}>
+                            {r.subs.length === 0 ? (
+                              <span className="text-neutral-400">—</span>
                             ) : (
-                              <LayoutGrid size={18} />
+                              <div className="flex flex-wrap gap-1.5">
+                                {r.subs.slice(0, MAX_SUBS).map((s) => (
+                                  <span
+                                    key={s}
+                                    className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs text-neutral-600"
+                                  >
+                                    {s}
+                                  </span>
+                                ))}
+                                {r.subs.length > MAX_SUBS && (
+                                  <span className="px-1 text-xs text-neutral-500">
+                                    +{r.subs.length - MAX_SUBS} more
+                                  </span>
+                                )}
+                              </div>
                             )}
-                          </div>
-                        </td>
-                        <td className={`${tdCls} font-medium`}>{r.name}</td>
-                        <td className={tdCls}>{r.count ?? "—"}</td>
-                        <td className={tdCls}>
-                          {r.subs.length === 0 ? (
-                            <span className="text-neutral-400">—</span>
+                          </td>
+                          <td className={`${tdCls} text-right`}>
+                            <Link
+                              href={`/admin/products?category=${encodeURIComponent(r.slug)}`}
+                              className={iconBtn}
+                              aria-label={`View ${r.name} products`}
+                              title="View products"
+                            >
+                              <Eye size={16} />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <ul className="divide-y divide-neutral-100">
+                  {view.rows.map((r) => (
+                    <li key={r.id} className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="grid h-14 w-14 flex-shrink-0 place-items-center overflow-hidden rounded-lg bg-neutral-100 text-neutral-400">
+                          {r.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={r.image}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
                           ) : (
-                            <div className="flex flex-wrap gap-1.5">
-                              {r.subs.slice(0, MAX_SUBS).map((s) => (
+                            <LayoutGrid size={20} />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium">{r.name}</p>
+                          <p className="text-sm text-neutral-500">
+                            {r.count === null ? "—" : r.count} product
+                            {r.count === 1 ? "" : "s"}
+                          </p>
+                          {r.subs.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {r.subs.map((s) => (
                                 <span
                                   key={s}
                                   className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs text-neutral-600"
@@ -175,29 +235,23 @@ export default function AdminCategories() {
                                   {s}
                                 </span>
                               ))}
-                              {r.subs.length > MAX_SUBS && (
-                                <span className="px-1 text-xs text-neutral-500">
-                                  +{r.subs.length - MAX_SUBS} more
-                                </span>
-                              )}
                             </div>
                           )}
-                        </td>
-                        <td className={`${tdCls} text-right`}>
-                          <Link
-                            href={`/admin/products?category=${encodeURIComponent(r.slug)}`}
-                            className={iconBtn}
-                            aria-label={`View ${r.name} products`}
-                            title="View products"
-                          >
-                            <Eye size={16} />
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <Link
+                          href={`/admin/products?category=${encodeURIComponent(r.slug)}`}
+                          className={btnSmall}
+                          aria-label={`View ${r.name} products`}
+                        >
+                          <Eye size={15} /> View products
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <Pagination
                 page={view.page}
                 pageCount={view.pageCount}
