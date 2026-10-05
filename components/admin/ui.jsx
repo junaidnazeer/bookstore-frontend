@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -17,6 +17,8 @@ export const btnBase =
 export const btnPrimary = `${btnBase} bg-spine text-white hover:bg-spine/90`;
 export const btnOutline = `${btnBase} border border-neutral-300 bg-white text-ink hover:bg-neutral-50`;
 export const btnDanger = `${btnBase} bg-red-600 text-white hover:bg-red-700`;
+export const btnSmall =
+  "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-ink transition hover:bg-neutral-50";
 export const iconBtn =
   "grid h-8 w-8 place-items-center rounded-md text-neutral-500 transition hover:bg-neutral-100 hover:text-spine focus-visible:outline-2 focus-visible:outline-spine/40 disabled:opacity-40";
 export const inputCls =
@@ -369,4 +371,25 @@ export function ConfirmDialog({
       </div>
     </Modal>
   );
+}
+
+/* ---------- responsive helper ----------
+   Tables need room (even with the sidebar open), so below 1280px every list
+   switches to cards that show all the details and buttons without sideways
+   scrolling. Only ONE of the two layouts is ever rendered (not both hidden
+   with CSS), so there are no duplicate buttons for screen readers or tests to
+   trip over. */
+export function useIsDesktop() {
+  const query = "(min-width: 1280px)";
+  const [desktop, setDesktop] = useState(() =>
+    typeof window === "undefined" ? true : window.matchMedia(query).matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const update = () => setDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return desktop;
 }

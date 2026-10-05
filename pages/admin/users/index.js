@@ -13,9 +13,11 @@ import {
   Pill,
   TableSkeleton,
   OrderStatusBadge,
+  btnSmall,
   iconBtn,
   tdCls,
   thCls,
+  useIsDesktop,
 } from "../../../components/admin/ui";
 import api from "../../../lib/api";
 import {
@@ -108,6 +110,7 @@ function UserDetails({ user, orders, onClose, showJoined }) {
 }
 
 export default function AdminUsers() {
+  const isDesktop = useIsDesktop();
   const [state, setState] = useState({ status: "loading" });
   const [term, setTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -245,65 +248,107 @@ export default function AdminUsers() {
             />
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px]">
-                  <thead>
-                    <tr className="border-b border-neutral-100 bg-neutral-50/60">
-                      <th className={thCls}>User ID</th>
-                      <th className={thCls}>Name</th>
-                      <th className={thCls}>Email</th>
-                      <th className={thCls}>Phone</th>
-                      {showJoined && <th className={thCls}>Joined</th>}
-                      {ordersKnown && <th className={thCls}>Orders</th>}
-                      <th className={`${thCls} text-right`}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {view.rows.map((u, i) => (
-                      <tr key={u.id || u.email || i}>
-                        <td
-                          className={`${tdCls} text-xs text-neutral-500`}
-                          title={u.id || undefined}
-                        >
-                          {u.id ? String(u.id).slice(0, 8) : "—"}
-                        </td>
-                        <td className={tdCls}>
-                          <span className="font-medium">{u.name || "—"}</span>{" "}
-                          {u.role === "ADMIN" && (
-                            <Pill tone="indigo">Admin</Pill>
-                          )}
-                        </td>
-                        <td className={`${tdCls} text-neutral-600`}>
-                          {u.email || "—"}
-                        </td>
-                        <td
-                          className={`${tdCls} whitespace-nowrap text-neutral-600`}
-                        >
-                          {u.phone || "—"}
-                        </td>
-                        {showJoined && (
-                          <td className={`${tdCls} whitespace-nowrap`}>
-                            {formatDate(u.createdAt)}
-                          </td>
-                        )}
-                        {ordersKnown && (
-                          <td className={tdCls}>{ordersFor(u).length}</td>
-                        )}
-                        <td className={`${tdCls} text-right`}>
-                          <button
-                            onClick={() => setViewing(u)}
-                            className={iconBtn}
-                            aria-label={`View ${u.name || u.email}`}
-                            title="View details"
-                          >
-                            <Eye size={16} />
-                          </button>
-                        </td>
+              {isDesktop ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px]">
+                    <thead>
+                      <tr className="border-b border-neutral-100 bg-neutral-50/60">
+                        <th className={thCls}>User ID</th>
+                        <th className={thCls}>Name</th>
+                        <th className={thCls}>Email</th>
+                        <th className={thCls}>Phone</th>
+                        {showJoined && <th className={thCls}>Joined</th>}
+                        {ordersKnown && <th className={thCls}>Orders</th>}
+                        <th className={`${thCls} text-right`}>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {view.rows.map((u, i) => (
+                        <tr key={u.id || u.email || i}>
+                          <td
+                            className={`${tdCls} text-xs text-neutral-500`}
+                            title={u.id || undefined}
+                          >
+                            {u.id ? String(u.id).slice(0, 8) : "—"}
+                          </td>
+                          <td className={tdCls}>
+                            <span className="font-medium">{u.name || "—"}</span>{" "}
+                            {u.role === "ADMIN" && (
+                              <Pill tone="indigo">Admin</Pill>
+                            )}
+                          </td>
+                          <td className={`${tdCls} text-neutral-600`}>
+                            {u.email || "—"}
+                          </td>
+                          <td
+                            className={`${tdCls} whitespace-nowrap text-neutral-600`}
+                          >
+                            {u.phone || "—"}
+                          </td>
+                          {showJoined && (
+                            <td className={`${tdCls} whitespace-nowrap`}>
+                              {formatDate(u.createdAt)}
+                            </td>
+                          )}
+                          {ordersKnown && (
+                            <td className={tdCls}>{ordersFor(u).length}</td>
+                          )}
+                          <td className={`${tdCls} text-right`}>
+                            <button
+                              onClick={() => setViewing(u)}
+                              className={iconBtn}
+                              aria-label={`View ${u.name || u.email}`}
+                              title="View details"
+                            >
+                              <Eye size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <ul className="divide-y divide-neutral-100">
+                  {view.rows.map((u, i) => (
+                    <li key={u.id || u.email || i} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium">
+                            {u.name || "—"}{" "}
+                            {u.role === "ADMIN" && (
+                              <Pill tone="indigo">Admin</Pill>
+                            )}
+                          </p>
+                          <p className="break-all text-sm text-neutral-600">
+                            {u.email || "—"}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setViewing(u)}
+                          className={btnSmall}
+                          aria-label={`View ${u.name || u.email}`}
+                        >
+                          <Eye size={15} /> View
+                        </button>
+                      </div>
+                      <p className="mt-2 text-xs text-neutral-500">
+                        {[
+                          u.phone && `+91 ${u.phone}`,
+                          showJoined &&
+                            u.createdAt &&
+                            `Joined ${formatDate(u.createdAt)}`,
+                          ordersKnown &&
+                            `${ordersFor(u).length} order${ordersFor(u).length === 1 ? "" : "s"}`,
+                          u.id && `ID ${String(u.id).slice(0, 8)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <Pagination
                 page={view.page}
                 pageCount={view.pageCount}

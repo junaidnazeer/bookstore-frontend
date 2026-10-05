@@ -23,6 +23,7 @@ import {
   TableSkeleton,
   thCls,
   tdCls,
+  useIsDesktop,
 } from "../../components/admin/ui";
 import api from "../../lib/api";
 import {
@@ -96,6 +97,7 @@ function StatCard({ icon: Icon, label, value, trend, trendLabel, note, hint }) {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const isDesktop = useIsDesktop();
   const [state, setState] = useState({ status: "loading" });
   const [months, setMonths] = useState(6);
   const [term, setTerm] = useState("");
@@ -379,7 +381,7 @@ export default function AdminDashboard() {
                     : "New orders will show up here."
                 }
               />
-            ) : (
+            ) : isDesktop ? (
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full min-w-[560px]">
                   <thead>
@@ -417,6 +419,33 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
+            ) : (
+              <ul className="mt-3 divide-y divide-neutral-100 border-t border-neutral-100">
+                {recent.map((o) => (
+                  <li key={o.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium">#{orderRef(o)}</p>
+                        <p className="text-sm text-neutral-600">
+                          {orderCustomerName(o) || "—"}
+                        </p>
+                      </div>
+                      <OrderStatusBadge status={o.status} />
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-sm font-medium">
+                        {formatCurrency(orderTotal(o))}
+                      </span>
+                      <Link
+                        href={`/admin/orders/${o.id}`}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-spine hover:underline"
+                      >
+                        <Eye size={15} /> View
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </Card>
         </>

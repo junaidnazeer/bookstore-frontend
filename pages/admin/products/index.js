@@ -16,11 +16,13 @@ import {
   TableSkeleton,
   btnOutline,
   btnPrimary,
+  btnSmall,
   checkCls,
   iconBtn,
   inputCls,
   tdCls,
   thCls,
+  useIsDesktop,
 } from "../../../components/admin/ui";
 import api from "../../../lib/api";
 import {
@@ -93,6 +95,7 @@ function RestockModal({ product, onClose, onSaved }) {
 export default function AdminProducts() {
   const router = useRouter();
   const { toast } = useAdminUI();
+  const isDesktop = useIsDesktop();
   const [state, setState] = useState({ status: "loading" });
   const [categories, setCategories] = useState([]);
   const [term, setTerm] = useState("");
@@ -240,7 +243,7 @@ export default function AdminProducts() {
       <Card>
         {categories.length > 0 && (
           <div
-            className="flex gap-2 overflow-x-auto border-b border-neutral-100 p-4"
+            className="flex flex-wrap gap-2 border-b border-neutral-100 p-4"
             role="group"
             aria-label="Filter by category"
           >
@@ -309,49 +312,153 @@ export default function AdminProducts() {
             />
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[820px]">
-                  <thead>
-                    <tr className="border-b border-neutral-100 bg-neutral-50/60">
-                      <th className={`${thCls} w-10`}>
-                        <input
-                          type="checkbox"
-                          className={checkCls}
-                          checked={allOnPage}
-                          onChange={toggleAll}
-                          aria-label="Select all products on this page"
-                        />
-                      </th>
-                      <th className={thCls}>Image</th>
-                      <th className={thCls}>Name</th>
-                      <th className={thCls}>Category</th>
-                      <th className={thCls}>Price</th>
-                      <th className={thCls}>Stock</th>
-                      <th className={thCls}>Status</th>
-                      <th className={`${thCls} text-right`}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
+              {isDesktop ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[820px]">
+                    <thead>
+                      <tr className="border-b border-neutral-100 bg-neutral-50/60">
+                        <th className={`${thCls} w-10`}>
+                          <input
+                            type="checkbox"
+                            className={checkCls}
+                            checked={allOnPage}
+                            onChange={toggleAll}
+                            aria-label="Select all products on this page"
+                          />
+                        </th>
+                        <th className={thCls}>Image</th>
+                        <th className={thCls}>Name</th>
+                        <th className={thCls}>Category</th>
+                        <th className={thCls}>Price</th>
+                        <th className={thCls}>Stock</th>
+                        <th className={thCls}>Status</th>
+                        <th className={`${thCls} text-right`}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {view.rows.map((p) => {
+                        const onSale =
+                          Number(p.originalPrice) > Number(p.price);
+                        return (
+                          <tr
+                            key={p.id}
+                            className={
+                              selected.has(p.id) ? "bg-spine/[0.03]" : undefined
+                            }
+                          >
+                            <td className={tdCls}>
+                              <input
+                                type="checkbox"
+                                className={checkCls}
+                                checked={selected.has(p.id)}
+                                onChange={() => toggleOne(p.id)}
+                                aria-label={`Select ${p.name}`}
+                              />
+                            </td>
+                            <td className={tdCls}>
+                              <div className="h-11 w-11 overflow-hidden rounded-lg bg-neutral-100">
+                                {p.imageUrls?.[0] && (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={p.imageUrls[0]}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                )}
+                              </div>
+                            </td>
+                            <td className={tdCls}>
+                              <p className="max-w-[240px] font-medium leading-snug">
+                                {p.name}
+                              </p>
+                              {p.subcategory && (
+                                <p className="text-xs text-neutral-500">
+                                  {p.subcategory}
+                                </p>
+                              )}
+                            </td>
+                            <td className={`${tdCls} text-neutral-600`}>
+                              {p.category?.name || "—"}
+                            </td>
+                            <td className={tdCls}>
+                              <span className="whitespace-nowrap">
+                                {formatCurrency(p.price)}
+                              </span>
+                              {onSale && (
+                                <span className="block whitespace-nowrap text-xs text-neutral-400 line-through">
+                                  {formatCurrency(p.originalPrice)}
+                                </span>
+                              )}
+                            </td>
+                            <td className={tdCls}>{p.stock}</td>
+                            <td className={tdCls}>
+                              <StockBadge stock={p.stock} />
+                            </td>
+                            <td className={`${tdCls} text-right`}>
+                              <div className="inline-flex items-center gap-0.5">
+                                <button
+                                  onClick={() => setRestockTarget(p)}
+                                  aria-label={`Restock ${p.name}`}
+                                  title="Restock"
+                                  className={iconBtn}
+                                >
+                                  <PackagePlus size={16} />
+                                </button>
+                                <Link
+                                  href={`/admin/products/${p.id}/edit`}
+                                  aria-label={`Edit ${p.name}`}
+                                  title="Edit"
+                                  className={iconBtn}
+                                >
+                                  <Pencil size={16} />
+                                </Link>
+                                <button
+                                  onClick={() => setDeleteTarget(p)}
+                                  aria-label={`Delete ${p.name}`}
+                                  title="Delete"
+                                  className={`${iconBtn} hover:!bg-red-50 hover:!text-red-600`}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 border-b border-neutral-100 bg-neutral-50/60 px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      className={checkCls}
+                      checked={allOnPage}
+                      onChange={toggleAll}
+                      aria-label="Select all products on this page"
+                    />
+                    <span className="text-xs text-neutral-500">
+                      Select all on this page
+                    </span>
+                  </div>
+                  <ul className="divide-y divide-neutral-100">
                     {view.rows.map((p) => {
                       const onSale = Number(p.originalPrice) > Number(p.price);
                       return (
-                        <tr
+                        <li
                           key={p.id}
-                          className={
-                            selected.has(p.id) ? "bg-spine/[0.03]" : undefined
-                          }
+                          className={`p-4 ${selected.has(p.id) ? "bg-spine/[0.03]" : ""}`}
                         >
-                          <td className={tdCls}>
+                          <div className="flex items-start gap-3">
                             <input
                               type="checkbox"
-                              className={checkCls}
+                              className={`${checkCls} mt-1 flex-shrink-0`}
                               checked={selected.has(p.id)}
                               onChange={() => toggleOne(p.id)}
                               aria-label={`Select ${p.name}`}
                             />
-                          </td>
-                          <td className={tdCls}>
-                            <div className="h-11 w-11 overflow-hidden rounded-lg bg-neutral-100">
+                            <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100">
                               {p.imageUrls?.[0] && (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
@@ -361,68 +468,60 @@ export default function AdminProducts() {
                                 />
                               )}
                             </div>
-                          </td>
-                          <td className={tdCls}>
-                            <p className="max-w-[240px] font-medium leading-snug">
-                              {p.name}
-                            </p>
-                            {p.subcategory && (
-                              <p className="text-xs text-neutral-500">
-                                {p.subcategory}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium leading-snug">
+                                {p.name}
                               </p>
-                            )}
-                          </td>
-                          <td className={`${tdCls} text-neutral-600`}>
-                            {p.category?.name || "—"}
-                          </td>
-                          <td className={tdCls}>
-                            <span className="whitespace-nowrap">
-                              {formatCurrency(p.price)}
-                            </span>
-                            {onSale && (
-                              <span className="block whitespace-nowrap text-xs text-neutral-400 line-through">
-                                {formatCurrency(p.originalPrice)}
-                              </span>
-                            )}
-                          </td>
-                          <td className={tdCls}>{p.stock}</td>
-                          <td className={tdCls}>
-                            <StockBadge stock={p.stock} />
-                          </td>
-                          <td className={`${tdCls} text-right`}>
-                            <div className="inline-flex items-center gap-0.5">
-                              <button
-                                onClick={() => setRestockTarget(p)}
-                                aria-label={`Restock ${p.name}`}
-                                title="Restock"
-                                className={iconBtn}
-                              >
-                                <PackagePlus size={16} />
-                              </button>
-                              <Link
-                                href={`/admin/products/${p.id}/edit`}
-                                aria-label={`Edit ${p.name}`}
-                                title="Edit"
-                                className={iconBtn}
-                              >
-                                <Pencil size={16} />
-                              </Link>
-                              <button
-                                onClick={() => setDeleteTarget(p)}
-                                aria-label={`Delete ${p.name}`}
-                                title="Delete"
-                                className={`${iconBtn} hover:!bg-red-50 hover:!text-red-600`}
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              <p className="text-xs text-neutral-500">
+                                {[p.category?.name, p.subcategory]
+                                  .filter(Boolean)
+                                  .join(" · ") || "—"}
+                              </p>
+                              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                <span className="font-medium">
+                                  {formatCurrency(p.price)}
+                                </span>
+                                {onSale && (
+                                  <span className="text-xs text-neutral-400 line-through">
+                                    {formatCurrency(p.originalPrice)}
+                                  </span>
+                                )}
+                                <span className="text-neutral-500">
+                                  Stock {p.stock}
+                                </span>
+                                <StockBadge stock={p.stock} />
+                              </div>
                             </div>
-                          </td>
-                        </tr>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setRestockTarget(p)}
+                              className={btnSmall}
+                              aria-label={`Restock ${p.name}`}
+                            >
+                              <PackagePlus size={15} /> Restock
+                            </button>
+                            <Link
+                              href={`/admin/products/${p.id}/edit`}
+                              className={btnSmall}
+                              aria-label={`Edit ${p.name}`}
+                            >
+                              <Pencil size={15} /> Edit
+                            </Link>
+                            <button
+                              onClick={() => setDeleteTarget(p)}
+                              className={`${btnSmall} text-red-600 hover:!bg-red-50`}
+                              aria-label={`Delete ${p.name}`}
+                            >
+                              <Trash2 size={15} /> Delete
+                            </button>
+                          </div>
+                        </li>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
+                  </ul>
+                </>
+              )}
               <Pagination
                 page={view.page}
                 pageCount={view.pageCount}
