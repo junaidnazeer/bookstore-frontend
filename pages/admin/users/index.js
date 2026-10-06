@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Eye, Users as UsersIcon } from "lucide-react";
-import AdminLayout from "../../../components/admin/AdminLayout";
+import { Eye, UserCheck, UserX, Users as UsersIcon } from "lucide-react";
+import AdminLayout, { useAdminUI } from "../../../components/admin/AdminLayout";
 import {
   Card,
+  ConfirmDialog,
   EmptyState,
   ErrorState,
   Modal,
@@ -51,7 +52,17 @@ function pickUser(u) {
     phone: u.phone || "",
     role: u.role || "",
     createdAt: u.createdAt || null,
+    // null = the backend doesn't say, so no status UI is shown
+    isActive: typeof u.isActive === "boolean" ? u.isActive : null,
   };
+}
+
+function StatusPill({ active }) {
+  return (
+    <Pill tone={active ? "green" : "gray"}>
+      {active ? "Active" : "Deactivated"}
+    </Pill>
+  );
 }
 
 function UserDetails({ user, orders, onClose, showJoined }) {
@@ -65,6 +76,9 @@ function UserDetails({ user, orders, onClose, showJoined }) {
     ["Email", user.email || "—"],
     ["Phone", user.phone || "—"],
     ...(showJoined ? [["Joined", formatDate(user.createdAt)]] : []),
+    ...(user.isActive !== null
+      ? [["Status", user.isActive ? "Active" : "Deactivated"]]
+      : []),
     ["Orders", orders.length],
     ["Total spent", formatCurrency(spent)],
   ];
@@ -91,7 +105,7 @@ function UserDetails({ user, orders, onClose, showJoined }) {
               className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm"
             >
               <Link
-                href={`/admin/orders/${o.id}`}
+                href={`/admin/orders/${o.id}?from=users`}
                 className="font-medium text-spine hover:underline"
               >
                 #{orderRef(o)}
@@ -111,10 +125,13 @@ function UserDetails({ user, orders, onClose, showJoined }) {
 
 export default function AdminUsers() {
   const isDesktop = useIsDesktop();
+  const { toast } = useAdminUI();
   const [state, setState] = useState({ status: "loading" });
   const [term, setTerm] = useState("");
   const [page, setPage] = useState(1);
   const [viewing, setViewing] = useState(null);
+  const [toggleTarget, setToggleTarget] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     setState((s) => (s.status === "ready" ? s : { status: "loading" }));
@@ -169,6 +186,35 @@ export default function AdminUsers() {
     load();
   }, [load]);
 
+  // Deactivating blocks the account at login on the backend. Admin accounts are
+  // never offered the button, so an admin can't lock themselves (or a colleague) out.
+  const canToggle = (u) => u.isActive !== null && u.role !== "ADMIN" && !!u.id;
+
+  async function setActive(u, next) {
+    setBusy(true);
+    try {
+      await api.put(`/admin/users/${u.id}`, { isActive: next });
+      toast(
+        next
+          ? `${u.name || u.email} can log in again.`
+          : `${u.name || u.email} has been deactivated.`,
+      );
+      setToggleTarget(null);
+      load();
+    } catch (err) {
+      toast(getApiError(err, "Could not update this account."), "error");
+      setToggleTarget(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Deactivating asks first; re-activating is harmless, so it just happens.
+  function requestToggle(u) {
+    if (u.isActive) setToggleTarget(u);
+    else setActive(u, true);
+  }
+
   const users = state.status === "ready" ? state.users : [];
   const orders = state.status === "ready" ? state.orders || [] : [];
 
@@ -202,6 +248,7 @@ export default function AdminUsers() {
   );
   const view = paginate(filtered, page);
   const showJoined = users.some((u) => u.createdAt);
+  const statusKnown = users.some((u) => u.isActive !== null);
   const ordersKnown = state.status === "ready" && state.orders !== null;
 
   const search = {
@@ -250,7 +297,7 @@ export default function AdminUsers() {
             <>
               {isDesktop ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px]">
+                  <table className="w-full min-w-[860px]">
                     <thead>
                       <tr className="border-b border-neutral-100 bg-neutral-50/60">
                         <th className={thCls}>User ID</th>
@@ -259,6 +306,7 @@ export default function AdminUsers() {
                         <th className={thCls}>Phone</th>
                         {showJoined && <th className={thCls}>Joined</th>}
                         {ordersKnown && <th className={thCls}>Orders</th>}
+                        {statusKnown && <th className={thCls}>Status</th>}
                         <th className={`${thCls} text-right`}>Actions</th>
                       </tr>
                     </thead>
@@ -293,15 +341,44 @@ export default function AdminUsers() {
                           {ordersKnown && (
                             <td className={tdCls}>{ordersFor(u).length}</td>
                           )}
+                          {statusKnown && (
+                            <td className={tdCls}>
+                              {u.isActive === null ? (
+                                "—"
+                              ) : (
+                                <StatusPill active={u.isActive} />
+                              )}
+                            </td>
+                          )}
                           <td className={`${tdCls} text-right`}>
-                            <button
-                              onClick={() => setViewing(u)}
-                              className={iconBtn}
-                              aria-label={`View ${u.name || u.email}`}
-                              title="View details"
-                            >
-                              <Eye size={16} />
-                            </button>
+                            <div className="inline-flex items-center gap-0.5">
+                              {canToggle(u) && (
+                                <button
+                                  onClick={() => requestToggle(u)}
+                                  className={`${iconBtn} ${u.isActive ? "hover:!bg-red-50 hover:!text-red-600" : ""}`}
+                                  aria-label={`${u.isActive ? "Deactivate" : "Activate"} ${u.name || u.email}`}
+                                  title={
+                                    u.isActive
+                                      ? "Deactivate account"
+                                      : "Activate account"
+                                  }
+                                >
+                                  {u.isActive ? (
+                                    <UserX size={16} />
+                                  ) : (
+                                    <UserCheck size={16} />
+                                  )}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setViewing(u)}
+                                className={iconBtn}
+                                aria-label={`View ${u.name || u.email}`}
+                                title="View details"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -324,13 +401,9 @@ export default function AdminUsers() {
                             {u.email || "—"}
                           </p>
                         </div>
-                        <button
-                          onClick={() => setViewing(u)}
-                          className={btnSmall}
-                          aria-label={`View ${u.name || u.email}`}
-                        >
-                          <Eye size={15} /> View
-                        </button>
+                        {u.isActive !== null && (
+                          <StatusPill active={u.isActive} />
+                        )}
                       </div>
                       <p className="mt-2 text-xs text-neutral-500">
                         {[
@@ -345,6 +418,29 @@ export default function AdminUsers() {
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setViewing(u)}
+                          className={btnSmall}
+                          aria-label={`View ${u.name || u.email}`}
+                        >
+                          <Eye size={15} /> View
+                        </button>
+                        {canToggle(u) && (
+                          <button
+                            onClick={() => requestToggle(u)}
+                            className={`${btnSmall} ${u.isActive ? "text-red-600 hover:!bg-red-50" : ""}`}
+                            aria-label={`${u.isActive ? "Deactivate" : "Activate"} ${u.name || u.email}`}
+                          >
+                            {u.isActive ? (
+                              <UserX size={15} />
+                            ) : (
+                              <UserCheck size={15} />
+                            )}{" "}
+                            {u.isActive ? "Deactivate" : "Activate"}
+                          </button>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -361,6 +457,17 @@ export default function AdminUsers() {
             </>
           ))}
       </Card>
+
+      {toggleTarget && (
+        <ConfirmDialog
+          title={`Deactivate ${toggleTarget.name || toggleTarget.email}?`}
+          message="They won’t be able to log in until you activate the account again. Their details and orders stay as they are."
+          confirmLabel="Deactivate"
+          busy={busy}
+          onConfirm={() => setActive(toggleTarget, false)}
+          onCancel={() => setToggleTarget(null)}
+        />
+      )}
 
       {viewing && (
         <UserDetails
