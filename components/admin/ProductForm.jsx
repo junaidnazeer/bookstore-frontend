@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ImagePlus, Plus, Trash2, X } from "lucide-react";
 import api from "../../lib/api";
@@ -85,6 +85,48 @@ export default function ProductForm({
     initial?.categoryId ?? initial?.category?.id ?? "",
   );
   const [subcategory, setSubcategory] = useState(initial?.subcategory ?? "");
+  // Subcategories already in use for the chosen category, so the admin picks
+  // from a list (no typos / duplicates) and can still add a brand-new one.
+  const [existingSubs, setExistingSubs] = useState([]);
+  const [addingNewSub, setAddingNewSub] = useState(false);
+
+  useEffect(() => {
+    const cat = categories?.find((c) => String(c.id) === String(categoryId));
+    if (!cat) {
+      setExistingSubs([]);
+      return;
+    }
+    const slug =
+      cat.slug ||
+      String(cat.name || "")
+        .toLowerCase()
+        .replace(/&/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+    let cancelled = false;
+    api
+      .get(`/products/subcategories?category=${encodeURIComponent(slug)}`)
+      .then((res) => {
+        if (!cancelled)
+          setExistingSubs(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setExistingSubs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, categories]);
+
+  // Options = existing ones + the product's current value (if it isn't listed).
+  const subOptions = useMemo(() => {
+    const list = [...existingSubs];
+    const cur = subcategory.trim();
+    if (cur && !list.some((x) => x.toLowerCase() === cur.toLowerCase()))
+      list.push(cur);
+    return list.sort((a, b) => a.localeCompare(b));
+  }, [existingSubs, subcategory]);
+
   const [price, setPrice] = useState(
     initial?.price != null ? String(initial.price) : "",
   );
@@ -137,6 +179,7 @@ export default function ProductForm({
     const errs = {};
     if (!name.trim()) errs.name = "Enter a product name.";
     if (!categoryId) errs.categoryId = "Choose a category.";
+    if (!subcategory.trim()) errs.subcategory = "Choose or add a subcategory.";
     const p = parseFloat(price);
     if (!Number.isFinite(p) || p <= 0) errs.price = "Enter a price above 0.";
     if (originalPrice.trim() !== "") {
@@ -227,7 +270,11 @@ export default function ProductForm({
               id="p-cat"
               className={inputCls}
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                setSubcategory("");
+                setAddingNewSub(false);
+              }}
             >
               <option value="">Select category</option>
               {categories.map((c) => (
@@ -239,17 +286,68 @@ export default function ProductForm({
           </Field>
 
           <Field
-            label="Subcategory (optional)"
+            label="Subcategory *"
+            error={fieldErrors.subcategory}
             htmlFor="p-sub"
-            hint="For example Quran or Hadith for books."
+            hint={
+              categoryId
+                ? "Pick an existing one, or add a new subcategory."
+                : "Choose a category first."
+            }
           >
-            <input
-              id="p-sub"
-              className={inputCls}
-              value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              placeholder="e.g. Quran, Hadith"
-            />
+            {addingNewSub ? (
+              <div className="flex gap-2">
+                <input
+                  id="p-sub"
+                  autoFocus
+                  className={inputCls}
+                  value={subcategory}
+                  onChange={(e) => setSubcategory(e.target.value)}
+                  onBlur={() => {
+                    // Reuse the existing spelling if it only differs by case.
+                    const match = existingSubs.find(
+                      (x) =>
+                        x.toLowerCase() === subcategory.trim().toLowerCase(),
+                    );
+                    if (match) setSubcategory(match);
+                  }}
+                  placeholder="New subcategory name"
+                />
+                <button
+                  type="button"
+                  className={btnOutline}
+                  onClick={() => {
+                    setAddingNewSub(false);
+                    setSubcategory("");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <select
+                id="p-sub"
+                className={inputCls}
+                disabled={!categoryId}
+                value={subcategory}
+                onChange={(e) => {
+                  if (e.target.value === "__new__") {
+                    setSubcategory("");
+                    setAddingNewSub(true);
+                  } else {
+                    setSubcategory(e.target.value);
+                  }
+                }}
+              >
+                <option value="">None</option>
+                {subOptions.map((sc) => (
+                  <option key={sc} value={sc}>
+                    {sc}
+                  </option>
+                ))}
+                <option value="__new__">+ Add new subcategory…</option>
+              </select>
+            )}
           </Field>
 
           <Field label="Stock *" htmlFor="p-stock" error={fieldErrors.stock}>

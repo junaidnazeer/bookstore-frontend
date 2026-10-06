@@ -34,6 +34,7 @@ const CATEGORY_IMAGE_URLS = {
 export default function Categories() {
   const router = useRouter();
   const [counts, setCounts] = useState({});
+  const [subs, setSubs] = useState({}); // { categorySlug: [{ name, count }] }
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,12 +44,28 @@ export default function Categories() {
       .then((res) => {
         const products = res.data.map(normalizeProduct);
         const tally = {};
+        const subTally = {};
         products.forEach((p) => {
           tally[p.category] = (tally[p.category] || 0) + 1;
+          const sub = (p.subcategory || "").trim();
+          if (sub) {
+            subTally[p.category] = subTally[p.category] || {};
+            subTally[p.category][sub] = (subTally[p.category][sub] || 0) + 1;
+          }
         });
         setCounts(tally);
+        const out = {};
+        Object.keys(subTally).forEach((slug) => {
+          out[slug] = Object.entries(subTally[slug])
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        });
+        setSubs(out);
       })
-      .catch(() => setCounts({}))
+      .catch(() => {
+        setCounts({});
+        setSubs({});
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -99,36 +116,58 @@ export default function Categories() {
         {/* Category list - exactly 7 categories, no products, no New Arrivals */}
         <div className="flex flex-col gap-3">
           {CATEGORIES.map((c) => (
-            <Link
+            <div
               key={c.slug}
-              href={`/products?category=${c.slug}`}
-              className="flex items-center gap-3 border border-neutral-200 rounded-xl bg-white p-3 shadow-sm hover:shadow-md transition-shadow"
+              className="border border-neutral-200 rounded-xl bg-white p-3 shadow-sm"
             >
-              <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={CATEGORY_IMAGE_URLS[c.slug]}
-                  alt={c.label}
-                  className="w-full h-full object-cover"
+              <Link
+                href={`/products?category=${c.slug}`}
+                className="flex items-center gap-3"
+              >
+                <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={CATEGORY_IMAGE_URLS[c.slug]}
+                    alt={c.label}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-ink text-sm truncate">
+                    {c.label}
+                  </p>
+                  <p className="text-xs text-neutral-400">
+                    {loading
+                      ? "Loading..."
+                      : `${counts[c.slug] || 0} product${
+                          counts[c.slug] === 1 ? "" : "s"
+                        }`}
+                  </p>
+                </div>
+                <ChevronRight
+                  size={16}
+                  className="text-neutral-300 flex-shrink-0"
                 />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-ink text-sm truncate">
-                  {c.label}
-                </p>
-                <p className="text-xs text-neutral-400">
-                  {loading
-                    ? "Loading..."
-                    : `${counts[c.slug] || 0} product${
-                        counts[c.slug] === 1 ? "" : "s"
-                      }`}
-                </p>
-              </div>
-              <ChevronRight
-                size={16}
-                className="text-neutral-300 flex-shrink-0"
-              />
-            </Link>
+              </Link>
+
+              {/* Subcategories added by the admin on products in this category */}
+              {(subs[c.slug] || []).length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-neutral-100">
+                  {subs[c.slug].map((sc) => (
+                    <Link
+                      key={sc.name}
+                      href={`/products?category=${c.slug}&subcategory=${encodeURIComponent(sc.name)}`}
+                      className="px-3 py-1 rounded-full text-xs border border-neutral-300 text-neutral-600 hover:bg-brass hover:text-white hover:border-brass transition-colors"
+                    >
+                      {sc.name}
+                      <span className="text-neutral-400 ml-1">
+                        ({sc.count})
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </main>
