@@ -88,8 +88,8 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
 
         {status === "CANCELLED" && order.status !== "CANCELLED" && (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Refunds aren’t processed from this panel. Refund the customer
-            separately if they’ve paid.
+            Cancelling puts the items back in stock. Refunds aren’t processed
+            from this panel, so refund the customer separately if they’ve paid.
           </p>
         )}
 
