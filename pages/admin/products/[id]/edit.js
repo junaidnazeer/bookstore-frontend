@@ -14,6 +14,7 @@ import {
   TableSkeleton,
 } from "../../../../components/admin/ui";
 import api from "../../../../lib/api";
+import { fetchCategories } from "../../../../lib/categories";
 import { apiStatus, getApiError, toArray } from "../../../../lib/admin";
 
 export default function EditProduct() {
@@ -59,9 +60,8 @@ export default function EditProduct() {
   useEffect(() => {
     if (!router.isReady) return;
     loadProduct(id);
-    api
-      .get("/categories")
-      .then((res) => setCategories(toArray(res.data)))
+    fetchCategories()
+      .then((r) => setCategories(r.categories))
       .catch(() =>
         setCategoriesError(
           "Could not load categories. Refresh the page to try again.",

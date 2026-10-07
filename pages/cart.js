@@ -25,7 +25,7 @@ function CartHeader({ router }) {
 
 export default function Cart() {
   const router = useRouter();
-  const { items, removeItem, updateQuantity, total } = useCart();
+  const { items, removeItem, updateQuantity, total, keyOf } = useCart();
 
   if (items.length === 0) {
     return (
@@ -107,7 +107,9 @@ export default function Cart() {
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    onClick={() =>
+                      updateQuantity(keyOf(item), item.quantity - 1)
+                    }
                     className="w-7 h-7 border border-neutral-300 rounded text-ink"
                     aria-label="Decrease quantity"
                   >
@@ -115,8 +117,11 @@ export default function Cart() {
                   </button>
                   <span className="w-6 text-center">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="w-7 h-7 border border-neutral-300 rounded text-ink"
+                    onClick={() =>
+                      updateQuantity(keyOf(item), item.quantity + 1)
+                    }
+                    disabled={item.quantity >= item.stock}
+                    className="w-7 h-7 border border-neutral-300 rounded text-ink disabled:opacity-40 disabled:cursor-not-allowed"
                     aria-label="Increase quantity"
                   >
                     +
@@ -124,7 +129,7 @@ export default function Cart() {
                 </div>
 
                 <button
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => removeItem(keyOf(item))}
                   className="text-sm text-neutral-400 hover:text-red-600"
                 >
                   Remove

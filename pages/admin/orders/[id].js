@@ -28,6 +28,7 @@ import {
   orderCustomerPhone,
   orderDate,
   orderRef,
+  orderShipping,
   orderTotal,
   toArray,
 } from "../../../lib/admin";
@@ -111,8 +112,12 @@ export default function AdminOrderDetail() {
     0,
   );
   const total = order ? orderTotal(order) : 0;
-  const extra = total - subtotal;
-  const showBreakdown = subtotal > 0 && extra > 0.009;
+  // When the order stores its shipping charge the split is exact (subtotal =
+  // total - shipping). Otherwise fall back to working it out from the items.
+  const shipping = order ? orderShipping(order) : null;
+  const extra = shipping !== null ? shipping : total - subtotal;
+  const shownSubtotal = shipping !== null ? total - shipping : subtotal;
+  const showBreakdown = shipping !== null || (subtotal > 0 && extra > 0.009);
   const flowIndex = order
     ? FLOW.findIndex((f) => f.status === order.status)
     : -1;
@@ -301,13 +306,19 @@ export default function AdminOrderDetail() {
                   <>
                     <div className="flex justify-between">
                       <dt className="text-neutral-500">Subtotal</dt>
-                      <dd>{formatCurrency(subtotal)}</dd>
+                      <dd>{formatCurrency(shownSubtotal)}</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-neutral-500">
-                        Shipping and other charges
+                        {shipping !== null
+                          ? "Shipping"
+                          : "Shipping and other charges"}
                       </dt>
-                      <dd>{formatCurrency(extra)}</dd>
+                      <dd>
+                        {shipping !== null && shipping === 0
+                          ? "Free"
+                          : formatCurrency(extra)}
+                      </dd>
                     </div>
                   </>
                 )}

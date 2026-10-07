@@ -170,6 +170,9 @@ export default function ProductDetail() {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
+  const [sizeError, setSizeError] = useState(false);
+  const [colorError, setColorError] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
@@ -217,11 +220,24 @@ export default function ProductDetail() {
   }, [product]);
 
   function handleAddToCart() {
+    if (product.sizes?.length > 0 && !selectedSize) {
+      setSizeError(true);
+      document
+        .getElementById("size-section")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (product.colors?.length > 0 && !selectedColor) {
+      setColorError(true);
+      document
+        .getElementById("color-section")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     addItem({ ...product, size: selectedSize, color: selectedColor, quantity });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
-
   if (status === "loading") {
     return (
       <div>
@@ -396,7 +412,11 @@ export default function ProductDetail() {
         <p
           className={`text-sm mt-1 ${inStock ? "text-green-600" : "text-red-600"}`}
         >
-          {inStock ? `In stock (${product.stock} available)` : "Out of stock"}
+          {!inStock
+            ? "Out of stock"
+            : product.stock <= 5
+              ? `Only ${product.stock} left`
+              : `In stock (${product.stock} available)`}
         </p>
 
         <h3 className="font-medium text-ink mt-5 mb-1">Product Details</h3>
@@ -405,17 +425,39 @@ export default function ProductDetail() {
         <TrustBadges />
 
         {product.sizes && product.sizes.length > 0 && (
-          <div className="mt-5">
-            <p className="text-sm text-neutral-500 mb-1">Size</p>
-            <div className="flex gap-2">
+          <div id="size-section" className="mt-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-ink">
+                Size
+                {selectedSize && (
+                  <span className="text-neutral-500 font-normal">
+                    {" "}
+                    : {selectedSize}
+                  </span>
+                )}
+              </p>
+              {attributes.size_guide && (
+                <button
+                  onClick={() => setShowGuide((v) => !v)}
+                  className="text-sm underline"
+                  style={{ color: SPINE }}
+                >
+                  Size guide
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
               {product.sizes.map((size) => (
                 <button
                   key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-3 py-1 rounded border text-sm ${
+                  onClick={() => {
+                    setSelectedSize(size);
+                    setSizeError(false);
+                  }}
+                  className={`min-w-[48px] h-10 px-3 rounded-lg border text-sm transition-colors ${
                     selectedSize === size
                       ? "text-white"
-                      : "border-neutral-300 text-ink"
+                      : "border-neutral-300 text-ink hover:border-neutral-500"
                   }`}
                   style={
                     selectedSize === size
@@ -427,17 +469,31 @@ export default function ProductDetail() {
                 </button>
               ))}
             </div>
+            {sizeError && (
+              <p className="text-sm text-red-600 mt-2">Please select a size</p>
+            )}
+            {showGuide && attributes.size_guide && (
+              <p className="text-sm text-neutral-600 bg-white border border-neutral-200 rounded-lg p-3 mt-3">
+                {attributes.size_guide}
+              </p>
+            )}
           </div>
         )}
 
         {product.colors && product.colors.length > 0 && (
-          <div className="mt-4">
+          <div id="color-section" className="mt-4">
             <p className="text-sm text-neutral-500 mb-1">Color</p>
+            {colorError && (
+              <p className="text-sm text-red-600 mb-1">Please select a color</p>
+            )}
             <div className="flex gap-2">
               {product.colors.map((color) => (
                 <button
                   key={color}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={() => {
+                    setSelectedColor(color);
+                    setColorError(false);
+                  }}
                   className={`px-3 py-1 rounded border text-sm ${
                     selectedColor === color
                       ? "text-white"
@@ -468,7 +524,9 @@ export default function ProductDetail() {
             </button>
             <span className="px-3 text-sm w-6 text-center">{quantity}</span>
             <button
-              onClick={() => setQuantity((q) => q + 1)}
+              onClick={() =>
+                setQuantity((q) => Math.min(product.stock || 1, q + 1))
+              }
               className="p-2.5"
               aria-label="Increase quantity"
             >
@@ -478,12 +536,7 @@ export default function ProductDetail() {
 
           <button
             onClick={handleAddToCart}
-            disabled={
-              !inStock ||
-              (needsVariants &&
-                ((product.sizes?.length > 0 && !selectedSize) ||
-                  (product.colors?.length > 0 && !selectedColor)))
-            }
+            disabled={!inStock}
             className="flex-1 px-5 py-2.5 rounded-lg text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: SPINE }}
           >

@@ -17,7 +17,11 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const showTracking = status === "SHIPPED" || status === "DELIVERED";
+  // The backend refuses to move an order out of CANCELLED (its items already went
+  // back into stock), so the panel doesn't offer it.
+  const locked = order.status === "CANCELLED";
+  const showTracking =
+    !locked && (status === "SHIPPED" || status === "DELIVERED");
   const trackingChanged =
     showTracking && tracking.trim() !== (order.trackingNumber || "");
   const changed = status !== order.status || trackingChanged;
@@ -54,6 +58,7 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
           <select
             id="order-status"
             className={inputCls}
+            disabled={locked}
             value={status}
             onChange={(e) => {
               setStatus(e.target.value);
@@ -67,6 +72,13 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
             ))}
           </select>
         </Field>
+
+        {locked && (
+          <p className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
+            This order was cancelled and its items went back into stock, so its
+            status can’t be changed.
+          </p>
+        )}
 
         {showTracking && (
           <Field
@@ -105,7 +117,7 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
           </button>
           <button
             type="submit"
-            disabled={saving || !changed}
+            disabled={saving || !changed || locked}
             className={btnPrimary}
           >
             {saving ? "Saving…" : "Save status"}

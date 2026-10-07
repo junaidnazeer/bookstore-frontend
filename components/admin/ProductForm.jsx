@@ -156,6 +156,13 @@ export default function ProductForm({
 
   const imageCount = keptUrls.length + newFiles.length;
 
+  // Make sure the product's current category is always selectable, even if the
+  // list we got doesn't include it (for example a category that was switched off).
+  const categoryOptions =
+    initial?.category && !categories.some((c) => c.id === initial.category.id)
+      ? [...categories, initial.category]
+      : categories;
+
   function addFiles(e) {
     const picked = Array.from(e.target.files || []);
     e.target.value = "";
@@ -277,9 +284,10 @@ export default function ProductForm({
               }}
             >
               <option value="">Select category</option>
-              {categories.map((c) => (
+              {categoryOptions.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
+                  {c.isActive === false ? " (inactive)" : ""}
                 </option>
               ))}
             </select>

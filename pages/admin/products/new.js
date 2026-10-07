@@ -4,7 +4,7 @@ import AdminLayout, { useAdminUI } from "../../../components/admin/AdminLayout";
 import ProductForm from "../../../components/admin/ProductForm";
 import { BackLink, PageHeader } from "../../../components/admin/ui";
 import api from "../../../lib/api";
-import { toArray } from "../../../lib/admin";
+import { fetchCategories } from "../../../lib/categories";
 
 export default function NewProduct() {
   const router = useRouter();
@@ -15,9 +15,8 @@ export default function NewProduct() {
   // The backend needs a real category id (UUID), so the dropdown is built from
   // the live category list rather than hardcoded names.
   useEffect(() => {
-    api
-      .get("/categories")
-      .then((res) => setCategories(toArray(res.data)))
+    fetchCategories()
+      .then((r) => setCategories(r.categories))
       .catch(() =>
         setCategoriesError(
           "Could not load categories. Refresh the page to try again.",
