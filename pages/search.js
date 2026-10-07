@@ -87,17 +87,22 @@ function FilterSelect({ label, value, options, onChange }) {
 }
 
 function ProductGridCard({ product }) {
+  const router = useRouter();
   const { addItem } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const wishlisted = isWishlisted(product.id);
   const [added, setAdded] = useState(false);
 
   function handleAdd() {
+    // Clothing needs a size, so send the customer to pick one first.
+    if (product.sizes && product.sizes.length > 0) {
+      router.push(`/products/${product.slug}`);
+      return;
+    }
     addItem(product);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
-
   return (
     <div className="border border-neutral-200 rounded-lg bg-white p-3 flex flex-col relative">
       <button
@@ -150,7 +155,11 @@ function ProductGridCard({ product }) {
         onClick={handleAdd}
         className="mt-2 px-3 py-1.5 bg-spine text-white text-sm rounded hover:opacity-90 transition-opacity"
       >
-        {added ? "Added ✓" : "Add to Cart"}
+        {added
+          ? "Added ✓"
+          : product.sizes && product.sizes.length > 0
+            ? "Select Size"
+            : "Add to Cart"}
       </button>
     </div>
   );

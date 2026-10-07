@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import Navbar from "../components/Navbar";
 import MosqueIcon from "../components/MosqueIcon";
 import api from "../lib/api";
@@ -105,6 +106,7 @@ function HorizontalProductRow({ products, addItem }) {
 }
 
 function ProductTile({ product, addItem }) {
+  const router = useRouter();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const wishlisted = isWishlisted(product.id);
 
@@ -137,10 +139,16 @@ function ProductTile({ product, addItem }) {
       </Link>
       <p className="text-spine font-semibold mt-1">₹{product.price}</p>
       <button
-        onClick={() => addItem(product)}
+        onClick={() =>
+          product.sizes && product.sizes.length > 0
+            ? router.push(`/products/${product.slug}`)
+            : addItem(product)
+        }
         className="mt-2 px-3 py-1.5 bg-spine text-white text-sm rounded hover:opacity-90 transition-opacity"
       >
-        Add to Cart
+        {product.sizes && product.sizes.length > 0
+          ? "Select Size"
+          : "Add to Cart"}
       </button>
     </div>
   );

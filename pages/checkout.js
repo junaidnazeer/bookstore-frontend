@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Navbar from "../components/Navbar";
 import { useCart } from "../lib/cart-context";
 import api from "../lib/api";
-import { MapPin, Plus, Pencil } from "lucide-react";
+import { MapPin, Plus, Pencil, ArrowLeft } from "lucide-react";
 
 const EMPTY_FORM = {
   label: "Home",
@@ -245,23 +244,50 @@ export default function Checkout() {
   if (items.length === 0) {
     return (
       <div>
-        <Navbar />
-        <main className="max-w-2xl mx-auto px-6 py-16 text-center">
-          <h1 className="font-serif text-2xl text-ink mb-3">
-            Your cart is empty
+        <header className="flex items-center gap-3 px-4 py-4 max-w-2xl mx-auto">
+          <button
+            onClick={() => router.back()}
+            aria-label="Go back"
+            className="flex-shrink-0"
+            style={{ color: "#1e3d32" }}
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <h1
+            className="font-serif text-lg font-semibold"
+            style={{ color: "#1e3d32" }}
+          >
+            Checkout
           </h1>
+        </header>
+        <main className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <h2 className="font-serif text-2xl text-ink mb-3">
+            Your cart is empty
+          </h2>
           <p className="text-neutral-500">Add something to your cart first.</p>
         </main>
       </div>
     );
   }
-
   return (
     <div>
-      <Navbar />
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <h1 className="font-serif text-2xl text-ink mb-6">Checkout</h1>
-
+      <header className="flex items-center gap-3 px-4 py-4 max-w-2xl mx-auto">
+        <button
+          onClick={() => router.back()}
+          aria-label="Go back"
+          className="flex-shrink-0"
+          style={{ color: "#1e3d32" }}
+        >
+          <ArrowLeft size={22} />
+        </button>
+        <h1
+          className="font-serif text-lg font-semibold"
+          style={{ color: "#1e3d32" }}
+        >
+          Checkout
+        </h1>
+      </header>
+      <main className="max-w-2xl mx-auto px-6 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <form onSubmit={handlePlaceOrder} className="flex flex-col gap-3">
             <div className="flex items-center justify-between mb-1">
@@ -499,7 +525,7 @@ export default function Checkout() {
             <div className="flex flex-col gap-3">
               {items.map((item) => (
                 <div
-                  key={item.id}
+                  key={`${item.id}-${item.size || ""}-${item.color || ""}`}
                   className="flex justify-between gap-3 text-sm"
                 >
                   <span className="text-neutral-600 min-w-0 truncate">

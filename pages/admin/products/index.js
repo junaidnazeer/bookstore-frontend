@@ -25,6 +25,7 @@ import {
   useIsDesktop,
 } from "../../../components/admin/ui";
 import api from "../../../lib/api";
+import { fetchCategories } from "../../../lib/categories";
 import {
   formatCurrency,
   getApiError,
@@ -109,20 +110,19 @@ export default function AdminProducts() {
 
   const load = useCallback(() => {
     setState((s) => (s.status === "ready" ? s : { status: "loading" }));
-    Promise.allSettled([
-      api.get("/admin/products"),
-      api.get("/categories"),
-    ]).then(([p, c]) => {
-      if (p.status === "rejected") {
-        setState({
-          status: "error",
-          error: getApiError(p.reason, "Could not load products."),
-        });
-        return;
-      }
-      setState({ status: "ready", products: toArray(p.value.data) });
-      if (c.status === "fulfilled") setCategories(toArray(c.value.data));
-    });
+    Promise.allSettled([api.get("/admin/products"), fetchCategories()]).then(
+      ([p, c]) => {
+        if (p.status === "rejected") {
+          setState({
+            status: "error",
+            error: getApiError(p.reason, "Could not load products."),
+          });
+          return;
+        }
+        setState({ status: "ready", products: toArray(p.value.data) });
+        if (c.status === "fulfilled") setCategories(c.value.categories);
+      },
+    );
   }, []);
 
   useEffect(() => {
@@ -261,6 +261,7 @@ export default function AdminProducts() {
                   }`}
                 >
                   {c.name}
+                  {c.isActive === false ? " (inactive)" : ""}
                 </button>
               );
             })}
