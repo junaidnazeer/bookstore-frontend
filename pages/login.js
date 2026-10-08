@@ -160,9 +160,7 @@ export default function Login() {
           className="flex items-center justify-center gap-2 px-5 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           style={{ backgroundColor: SPINE }}
         >
-          <>
-            Log In <ArrowRight size={16} />
-          </>
+          <>Log In</>
         </button>
       </form>
 

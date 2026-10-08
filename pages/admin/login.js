@@ -194,10 +194,7 @@ export default function AdminLogin() {
                 disabled={loading}
                 className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-spine text-base font-medium text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 [@media(min-height:881px)]:sm:h-14"
               >
-                <>
-                  Login
-                  <ArrowRight size={18} />
-                </>
+                <>Login</>
               </button>
             </form>
 
