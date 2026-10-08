@@ -377,9 +377,7 @@ export default function Signup() {
               className="flex items-center justify-center gap-2 px-5 py-3 text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               style={{ backgroundColor: SPINE }}
             >
-              <>
-                Create Account <ArrowRight size={16} />
-              </>
+              <>Create Account</>
             </button>
           </form>
 
