@@ -9,20 +9,31 @@ import BottomTabBar from "../components/BottomTabBar";
 import SideNav from "../components/SideNav";
 import SidebarToggleButton from "../components/SidebarToggleButton";
 
+// Pages that must NOT get the customer menu button, sidebar or mobile tab bar:
+// the admin panel (own layout) and the login / signup / forgot-password pages.
+const CHROME_FREE_PREFIXES = [
+  "/admin",
+  "/login",
+  "/signup",
+  "/forgot-password",
+];
+
 // Needs to read sidebar state to shift page content, so it has to live
 // inside SidebarProvider rather than alongside it.
 function AppShell({ Component, pageProps }) {
   const { open } = useSidebar();
   const router = useRouter();
-  // The admin panel has its own sidebar and top bar. The customer sidebar,
-  // floating menu button and mobile tab bar must not render on top of it.
-  const isAdmin = router.pathname.startsWith("/admin");
+  const chromeFree = CHROME_FREE_PREFIXES.some((p) =>
+    router.pathname.startsWith(p),
+  );
 
+  // "admin-route" also removes the extra bottom padding that the mobile tab
+  // bar needs, so no empty gap is left on these pages.
   useEffect(() => {
-    document.body.classList.toggle("admin-route", isAdmin);
-  }, [isAdmin]);
+    document.body.classList.toggle("admin-route", chromeFree);
+  }, [chromeFree]);
 
-  if (isAdmin) return <Component {...pageProps} />;
+  if (chromeFree) return <Component {...pageProps} />;
 
   return (
     <>
