@@ -507,7 +507,7 @@ export default function ProductForm({
 
           <div>
             <span className="mb-1.5 block text-sm font-medium text-spine">
-              Attributes (optional)
+              Attributes
             </span>
             <div className="flex flex-col gap-2">
               {rows.map((row, i) => (
