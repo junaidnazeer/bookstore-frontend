@@ -8,7 +8,7 @@ function HangingLantern({ side = "left" }) {
       : "right-2 sm:right-6 md:right-16";
   return (
     <div
-      className={`block absolute top-0 ${position} z-0 scale-[0.55] sm:scale-75 md:scale-100 origin-top`}
+      className={`hidden md:block absolute top-0 ${position} z-0 origin-top`}
     >
       <svg width="90" height="220" viewBox="0 0 90 220" fill="none">
         <line
