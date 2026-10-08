@@ -389,7 +389,7 @@ export default function ProductForm({
           </Field>
 
           <Field
-            label="Original price (optional)"
+            label="Original price (₹)"
             htmlFor="p-orig"
             error={fieldErrors.originalPrice}
             hint={

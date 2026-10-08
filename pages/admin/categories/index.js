@@ -165,7 +165,7 @@ function CategoryForm({ category, existingNames, onClose, onSaved }) {
 
         <div>
           <span className="mb-1.5 block text-sm font-medium text-spine">
-            Image (optional)
+            Image
           </span>
           <div className="flex items-center gap-3">
             <div className="relative">
