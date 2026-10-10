@@ -12,7 +12,8 @@ import {
   Modal,
   Pagination,
   PageHeader,
-  StockBadge,
+  LowStockTag,
+  ProductStatusBadge,
   TableSkeleton,
   btnOutline,
   btnPrimary,
@@ -50,8 +51,15 @@ function RestockModal({ product, onClose, onSaved }) {
     setSaving(true);
     setError(null);
     try {
+      // The backend's update clears originalPrice, subcategory, brand and sku when
+      // they're left out of the request, so send their current values back with
+      // the new stock. (Sending only { stock } would silently erase them.)
       await api.put(`/admin/products/${product.id}`, {
         stock: Number(product.stock) + add,
+        originalPrice: product.originalPrice,
+        subcategory: product.subcategory,
+        brand: product.brand,
+        sku: product.sku,
       });
       toast(`Added ${add} to ${product.name}.`);
       onSaved();
@@ -391,9 +399,12 @@ export default function AdminProducts() {
                                 </span>
                               )}
                             </td>
-                            <td className={tdCls}>{p.stock}</td>
                             <td className={tdCls}>
-                              <StockBadge stock={p.stock} />
+                              {p.stock}
+                              <LowStockTag stock={p.stock} />
+                            </td>
+                            <td className={tdCls}>
+                              <ProductStatusBadge status={p.status} />
                             </td>
                             <td className={`${tdCls} text-right`}>
                               <div className="inline-flex items-center gap-0.5">
@@ -489,6 +500,7 @@ export default function AdminProducts() {
                                 )}
                                 <span className="text-neutral-500">
                                   Stock {p.stock}
+                                  <LowStockTag stock={p.stock} />
                                 </span>
                                 <StockBadge stock={p.stock} />
                               </div>
