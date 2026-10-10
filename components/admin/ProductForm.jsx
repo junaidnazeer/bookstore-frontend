@@ -303,7 +303,7 @@ export default function ProductForm({
           </Field>
 
           <Field
-            label="Original price (optional)"
+            label="Original price (₹)"
             htmlFor="p-orig"
             error={fieldErrors.originalPrice}
             hint={
@@ -327,7 +327,7 @@ export default function ProductForm({
 
         <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field
-            label="Brand (optional)"
+            label="Brand *"
             htmlFor="p-brand"
             error={fieldErrors.brand}
           >
@@ -341,7 +341,7 @@ export default function ProductForm({
           </Field>
 
           <Field
-            label="SKU (optional)"
+            label="SKU (stock keeping unit) *"
             htmlFor="p-sku"
             error={fieldErrors.sku}
             hint="A unique stock code. Two products can’t share one."
@@ -480,7 +480,7 @@ export default function ProductForm({
 
           <div>
             <span className="mb-1.5 block text-sm font-medium text-spine">
-              Attributes (optional)
+              Attributes
             </span>
             <div className="flex flex-col gap-2">
               {rows.map((row, i) => (
