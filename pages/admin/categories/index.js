@@ -213,7 +213,7 @@ function CategoryForm({ category, existingNames, onClose, onSaved }) {
           <span className="text-sm">
             <span className="font-medium text-ink">Active</span>
             <span className="block text-xs text-neutral-500">
-              Switch off to hide this category from customers.
+              Switch off to hide this category and its products from customers.
             </span>
           </span>
         </label>

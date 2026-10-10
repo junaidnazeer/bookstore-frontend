@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import { useCart } from "../lib/cart-context";
+import { deliveryFor, rupees, useStoreSettings } from "../lib/store-settings";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -26,6 +27,7 @@ function CartHeader({ router }) {
 export default function Cart() {
   const router = useRouter();
   const { items, removeItem, updateQuantity, total, keyOf } = useCart();
+  const settings = useStoreSettings();
 
   if (items.length === 0) {
     return (
@@ -56,6 +58,7 @@ export default function Cart() {
     if (!item.originalPrice) return sum;
     return sum + (item.originalPrice - item.price) * item.quantity;
   }, 0);
+  const delivery = deliveryFor(total, settings);
 
   return (
     <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
@@ -154,8 +157,20 @@ export default function Cart() {
 
           <div className="flex items-center justify-between text-sm text-neutral-600">
             <span>Delivery</span>
-            <span className="text-green-600 font-medium">Free</span>
+            {!delivery.known ? (
+              <span className="text-neutral-500">Calculated at checkout</span>
+            ) : delivery.fee === 0 ? (
+              <span className="text-green-600 font-medium">Free</span>
+            ) : (
+              <span>₹{rupees(delivery.fee)}</span>
+            )}
           </div>
+
+          {delivery.remaining > 0 && (
+            <p className="text-xs text-neutral-500">
+              Add ₹{rupees(delivery.remaining)} more for free delivery.
+            </p>
+          )}
 
           <div className="flex items-center justify-between pt-2 border-t border-neutral-200">
             <span className="font-serif text-xl text-ink">Total</span>
