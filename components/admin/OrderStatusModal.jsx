@@ -34,15 +34,25 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
     }
     setSaving(true);
     setError(null);
-    const body = { status };
-    if (showTracking && tracking.trim()) body.trackingNumber = tracking.trim();
+    // Send only what changed.
+    const body = {};
+    if (status !== order.status) body.status = status;
+    const newTracking = tracking.trim();
+    if (
+      showTracking &&
+      newTracking &&
+      newTracking !== (order.trackingNumber || "")
+    )
+      body.trackingNumber = newTracking;
     try {
       await api.put(`/admin/orders/${order.id}`, body);
       toast(
-        `Order #${orderRef(order)} is now ${ORDER_STATUS_META[status]?.label || status}.`,
+        body.status
+          ? `Order #${orderRef(order)} is now ${ORDER_STATUS_META[status]?.label || status}.`
+          : `Tracking number updated for order #${orderRef(order)}.`,
       );
       onSaved({
-        status,
+        ...(body.status ? { status } : {}),
         ...(body.trackingNumber ? { trackingNumber: body.trackingNumber } : {}),
       });
     } catch (err) {
