@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ImagePlus, Plus, Trash2, X } from "lucide-react";
 import api from "../../lib/api";
@@ -8,6 +8,7 @@ import {
   Field,
   btnOutline,
   btnPrimary,
+  checkCls,
   inputCls,
   textareaCls,
 } from "./ui";
@@ -85,48 +86,6 @@ export default function ProductForm({
     initial?.categoryId ?? initial?.category?.id ?? "",
   );
   const [subcategory, setSubcategory] = useState(initial?.subcategory ?? "");
-  // Subcategories already in use for the chosen category, so the admin picks
-  // from a list (no typos / duplicates) and can still add a brand-new one.
-  const [existingSubs, setExistingSubs] = useState([]);
-  const [addingNewSub, setAddingNewSub] = useState(false);
-
-  useEffect(() => {
-    const cat = categories?.find((c) => String(c.id) === String(categoryId));
-    if (!cat) {
-      setExistingSubs([]);
-      return;
-    }
-    const slug =
-      cat.slug ||
-      String(cat.name || "")
-        .toLowerCase()
-        .replace(/&/g, "")
-        .trim()
-        .replace(/\s+/g, "-");
-    let cancelled = false;
-    api
-      .get(`/products/subcategories?category=${encodeURIComponent(slug)}`)
-      .then((res) => {
-        if (!cancelled)
-          setExistingSubs(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch(() => {
-        if (!cancelled) setExistingSubs([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryId, categories]);
-
-  // Options = existing ones + the product's current value (if it isn't listed).
-  const subOptions = useMemo(() => {
-    const list = [...existingSubs];
-    const cur = subcategory.trim();
-    if (cur && !list.some((x) => x.toLowerCase() === cur.toLowerCase()))
-      list.push(cur);
-    return list.sort((a, b) => a.localeCompare(b));
-  }, [existingSubs, subcategory]);
-
   const [price, setPrice] = useState(
     initial?.price != null ? String(initial.price) : "",
   );
@@ -137,6 +96,10 @@ export default function ProductForm({
     initial?.stock != null ? String(initial.stock) : "",
   );
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [brand, setBrand] = useState(initial?.brand ?? "");
+  const [sku, setSku] = useState(initial?.sku ?? "");
+  const [status, setStatus] = useState(initial?.status ?? "ACTIVE");
+  const [featured, setFeatured] = useState(initial?.featured ?? false);
   const [keptUrls, setKeptUrls] = useState(initial?.imageUrls ?? []);
   const [newFiles, setNewFiles] = useState([]); // [{ file, preview }]
   const [rows, setRows] = useState(() =>
@@ -186,7 +149,6 @@ export default function ProductForm({
     const errs = {};
     if (!name.trim()) errs.name = "Enter a product name.";
     if (!categoryId) errs.categoryId = "Choose a category.";
-    if (!subcategory.trim()) errs.subcategory = "Choose or add a subcategory.";
     const p = parseFloat(price);
     if (!Number.isFinite(p) || p <= 0) errs.price = "Enter a price above 0.";
     if (originalPrice.trim() !== "") {
@@ -199,6 +161,9 @@ export default function ProductForm({
     if (stock.trim() === "" || !Number.isInteger(s) || s < 0)
       errs.stock = "Enter a whole number, 0 or more.";
     if (!description.trim()) errs.description = "Add a short description.";
+    if (brand.trim().length > 60)
+      errs.brand = "Keep the brand under 60 characters.";
+    if (sku.trim().length > 40) errs.sku = "Keep the SKU under 40 characters.";
     return errs;
   }
 
@@ -230,6 +195,10 @@ export default function ProductForm({
         originalPrice: originalPrice.trim() ? parseFloat(originalPrice) : null,
         stock: parseInt(stock, 10),
         description: description.trim(),
+        brand: brand.trim() || null,
+        sku: sku.trim() || null,
+        status,
+        featured,
         imageUrls: [...keptUrls, ...uploaded],
         attributes: attrs.attributes,
       });
@@ -277,11 +246,7 @@ export default function ProductForm({
               id="p-cat"
               className={inputCls}
               value={categoryId}
-              onChange={(e) => {
-                setCategoryId(e.target.value);
-                setSubcategory("");
-                setAddingNewSub(false);
-              }}
+              onChange={(e) => setCategoryId(e.target.value)}
             >
               <option value="">Select category</option>
               {categoryOptions.map((c) => (
@@ -294,68 +259,17 @@ export default function ProductForm({
           </Field>
 
           <Field
-            label="Subcategory *"
-            error={fieldErrors.subcategory}
+            label="Subcategory"
             htmlFor="p-sub"
-            hint={
-              categoryId
-                ? "Pick an existing one, or add a new subcategory."
-                : "Choose a category first."
-            }
+            hint="For example Quran or Hadith for books."
           >
-            {addingNewSub ? (
-              <div className="flex gap-2">
-                <input
-                  id="p-sub"
-                  autoFocus
-                  className={inputCls}
-                  value={subcategory}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                  onBlur={() => {
-                    // Reuse the existing spelling if it only differs by case.
-                    const match = existingSubs.find(
-                      (x) =>
-                        x.toLowerCase() === subcategory.trim().toLowerCase(),
-                    );
-                    if (match) setSubcategory(match);
-                  }}
-                  placeholder="New subcategory name"
-                />
-                <button
-                  type="button"
-                  className={btnOutline}
-                  onClick={() => {
-                    setAddingNewSub(false);
-                    setSubcategory("");
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <select
-                id="p-sub"
-                className={inputCls}
-                disabled={!categoryId}
-                value={subcategory}
-                onChange={(e) => {
-                  if (e.target.value === "__new__") {
-                    setSubcategory("");
-                    setAddingNewSub(true);
-                  } else {
-                    setSubcategory(e.target.value);
-                  }
-                }}
-              >
-                <option value="">None</option>
-                {subOptions.map((sc) => (
-                  <option key={sc} value={sc}>
-                    {sc}
-                  </option>
-                ))}
-                <option value="__new__">+ Add new subcategory…</option>
-              </select>
-            )}
+            <input
+              id="p-sub"
+              className={inputCls}
+              value={subcategory}
+              onChange={(e) => setSubcategory(e.target.value)}
+              placeholder="e.g. Quran, Hadith"
+            />
           </Field>
 
           <Field label="Stock *" htmlFor="p-stock" error={fieldErrors.stock}>
@@ -389,7 +303,7 @@ export default function ProductForm({
           </Field>
 
           <Field
-            label="Original price (₹)"
+            label="Original price (optional)"
             htmlFor="p-orig"
             error={fieldErrors.originalPrice}
             hint={
@@ -409,6 +323,65 @@ export default function ProductForm({
               placeholder="Price before discount"
             />
           </Field>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+          <Field
+            label="Brand (optional)"
+            htmlFor="p-brand"
+            error={fieldErrors.brand}
+          >
+            <input
+              id="p-brand"
+              className={inputCls}
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              placeholder="e.g. Dar-us-Salam"
+            />
+          </Field>
+
+          <Field
+            label="SKU (optional)"
+            htmlFor="p-sku"
+            error={fieldErrors.sku}
+            hint="A unique stock code. Two products can’t share one."
+          >
+            <input
+              id="p-sku"
+              className={inputCls}
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              placeholder="e.g. QT-001"
+            />
+          </Field>
+
+          <Field label="Status" htmlFor="p-status">
+            <select
+              id="p-status"
+              className={inputCls}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="DRAFT">Draft</option>
+              <option value="OUT_OF_STOCK">Out of stock</option>
+            </select>
+          </Field>
+
+          <label className="flex cursor-pointer items-start gap-3 md:mt-7">
+            <input
+              type="checkbox"
+              className={`${checkCls} mt-0.5`}
+              checked={featured}
+              onChange={(e) => setFeatured(e.target.checked)}
+            />
+            <span className="text-sm">
+              <span className="font-medium text-ink">Featured product</span>
+              <span className="block text-xs text-neutral-500">
+                Mark products you want to highlight.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="mt-5">
@@ -507,7 +480,7 @@ export default function ProductForm({
 
           <div>
             <span className="mb-1.5 block text-sm font-medium text-spine">
-              Attributes
+              Attributes (optional)
             </span>
             <div className="flex flex-col gap-2">
               {rows.map((row, i) => (

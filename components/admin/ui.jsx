@@ -117,6 +117,29 @@ export function OrderStatusBadge({ status }) {
     <Pill tone={meta?.tone || "gray"}>{meta?.label || status || "—"}</Pill>
   );
 }
+const PRODUCT_STATUS = {
+  ACTIVE: { label: "Active", tone: "green" },
+  DRAFT: { label: "Draft", tone: "gray" },
+  OUT_OF_STOCK: { label: "Out of stock", tone: "red" },
+};
+
+export function ProductStatusBadge({ status }) {
+  const m = PRODUCT_STATUS[status];
+  return <Pill tone={m?.tone || "gray"}>{m?.label || status || "—"}</Pill>;
+}
+
+// A small "Low" / "Out" hint next to a stock number (nothing when stock is fine).
+export function LowStockTag({ stock }) {
+  const s = stockStatus(stock);
+  if (s.tone === "green") return null;
+  return (
+    <span
+      className={`ml-1.5 text-xs font-medium ${s.tone === "red" ? "text-red-600" : "text-amber-600"}`}
+    >
+      {s.tone === "red" ? "Out" : "Low"}
+    </span>
+  );
+}
 
 export function StockBadge({ stock }) {
   const s = stockStatus(stock);
