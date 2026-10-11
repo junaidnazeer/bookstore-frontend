@@ -1,8 +1,8 @@
 import { useRouter } from "next/router";
 import { useCart } from "../lib/cart-context";
-import { deliveryFor, rupees, useStoreSettings } from "../lib/store-settings";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useShipping } from "../lib/useShipping";
 
 const SPINE = "#1e3d32";
 
@@ -27,7 +27,9 @@ function CartHeader({ router }) {
 export default function Cart() {
   const router = useRouter();
   const { items, removeItem, updateQuantity, total, keyOf } = useCart();
-  const settings = useStoreSettings();
+  const { loaded, shippingFor, threshold } = useShipping();
+  const shipping = shippingFor(total);
+  const grandTotal = total + shipping;
 
   if (items.length === 0) {
     return (
@@ -58,7 +60,6 @@ export default function Cart() {
     if (!item.originalPrice) return sum;
     return sum + (item.originalPrice - item.price) * item.quantity;
   }, 0);
-  const delivery = deliveryFor(total, settings);
 
   return (
     <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
@@ -67,7 +68,7 @@ export default function Cart() {
         <div className="flex flex-col gap-4">
           {items.map((item) => (
             <div
-              key={`${item.id}-${item.size || ""}-${item.color || ""}`}
+              key={keyOf(item)}
               className="border-l-4 bg-white p-4 rounded shadow-sm"
               style={{ borderColor: SPINE }}
             >
@@ -157,25 +158,24 @@ export default function Cart() {
 
           <div className="flex items-center justify-between text-sm text-neutral-600">
             <span>Delivery</span>
-            {!delivery.known ? (
-              <span className="text-neutral-500">Calculated at checkout</span>
-            ) : delivery.fee === 0 ? (
+            {!loaded ? (
+              <span>…</span>
+            ) : shipping === 0 ? (
               <span className="text-green-600 font-medium">Free</span>
             ) : (
-              <span>₹{rupees(delivery.fee)}</span>
+              <span>₹{shipping}</span>
             )}
           </div>
-
-          {delivery.remaining > 0 && (
+          {loaded && shipping > 0 && threshold > 0 && (
             <p className="text-xs text-neutral-500">
-              Add ₹{rupees(delivery.remaining)} more for free delivery.
+              Add ₹{threshold - total} more for free delivery.
             </p>
           )}
 
           <div className="flex items-center justify-between pt-2 border-t border-neutral-200">
             <span className="font-serif text-xl text-ink">Total</span>
             <span className="font-serif text-xl" style={{ color: SPINE }}>
-              ₹{total}
+              ₹{grandTotal}
             </span>
           </div>
         </div>

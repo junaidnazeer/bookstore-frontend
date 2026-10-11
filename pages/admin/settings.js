@@ -1,212 +1,299 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ImagePlus, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ImagePlus } from "lucide-react";
 import AdminLayout, { useAdminUI } from "../../components/admin/AdminLayout";
 import {
   Card,
   ErrorState,
   Field,
-  NotSupported,
+  Notice,
   PageHeader,
   Pill,
   TableSkeleton,
-  btnOutline,
   btnPrimary,
+  checkCls,
   inputCls,
   textareaCls,
 } from "../../components/admin/ui";
 import api from "../../lib/api";
-import { getApiError, isUnsupported } from "../../lib/admin";
+import { getApiError } from "../../lib/admin";
 
-const TABS = [
-  { id: "general", label: "General" },
-  { id: "payment", label: "Payment" },
-  { id: "shipping", label: "Shipping" },
-  { id: "email", label: "Email" },
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+
+// The four sections of GET / PUT /api/admin/settings. Payment mode, key and
+// secrets are read-only (they live on the server), so only the online-payments
+// switch is editable there. There is no cash-on-delivery switch: the server
+// doesn't support it yet.
+const SECTIONS = [
+  {
+    id: "general",
+    label: "General",
+    fields: [
+      { key: "storeName", label: "Store name", required: true },
+      { key: "tagline", label: "Tagline" },
+      { key: "storeEmail", label: "Store email", type: "email" },
+      {
+        key: "phone",
+        label: "Phone",
+        type: "phone",
+        hint: "10-digit number, without +91.",
+      },
+      { key: "address", label: "Address", type: "textarea", wide: true },
+      { key: "logoUrl", label: "Logo", type: "logo", wide: true },
+    ],
+  },
+  { id: "payment", label: "Payment", fields: [] },
+  {
+    id: "shipping",
+    label: "Shipping",
+    fields: [
+      {
+        key: "shippingCharge",
+        required: true,
+        label: "Delivery charge (₹)",
+        type: "money",
+        hint: "Charged on every order. Enter 0 for free delivery.",
+      },
+      {
+        key: "freeShippingThreshold",
+        required: true,
+        label: "Free delivery above (₹)",
+        type: "money",
+        hint: "Orders at or above this amount ship free. 0 means no free-delivery offer.",
+      },
+      {
+        key: "deliveryEstimate",
+        label: "Delivery estimate",
+        placeholder: "e.g. 2-5 working days",
+      },
+      {
+        key: "courierName",
+        label: "Courier name",
+        placeholder: "e.g. India Post",
+      },
+      {
+        key: "trackingUrlTemplate",
+        label: "Tracking link",
+        type: "template",
+        wide: true,
+        placeholder: "https://example.com/track?id={trackingNumber}",
+        hint: "Must start with http(s) and include {trackingNumber}, which is replaced by each order's tracking number.",
+      },
+    ],
+  },
+  {
+    id: "email",
+    label: "Email",
+    fields: [
+      {
+        key: "senderName",
+        label: "Sender name",
+        placeholder: "Shown as the sender of emails",
+      },
+      { key: "replyToEmail", label: "Reply-to email", type: "email" },
+      {
+        key: "lowStockThreshold",
+        required: true,
+        label: "Low stock level",
+        type: "int",
+        hint: "A product at or below this many items is flagged as low stock.",
+      },
+    ],
+  },
 ];
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const toText = (v) => (v === null || v === undefined ? "" : String(v));
 
-// The editable fields, grouped the way the backend groups them
-// (GET / PUT /api/admin/settings). `kind` decides the input and the checks.
-// Payment is read-only: its keys live on the server, and the backend's checkout
-// doesn't read the on/off switches, so none are offered here.
-const FIELDS = {
-  general: [
-    {
-      key: "storeName",
-      label: "Store name",
-      kind: "text",
-      required: true,
-      max: 80,
-    },
-    {
-      key: "tagline",
-      label: "Tagline",
-      kind: "text",
-      max: 80,
-      placeholder: "Faith • Knowledge • Lifestyle",
-    },
-    {
-      key: "storeEmail",
-      label: "Contact email",
-      kind: "email",
-      hint: "The address customers can write to.",
-    },
-    {
-      key: "phone",
-      label: "Phone",
-      kind: "phone",
-      hint: "10-digit mobile number.",
-    },
-    { key: "address", label: "Address", kind: "textarea", max: 300 },
-  ],
-  shipping: [
-    {
-      key: "shippingCharge",
-      label: "Shipping charge (₹)",
-      kind: "money",
-      required: true,
-      hint: "Added to every order below the free-shipping amount. Enter 0 for free delivery.",
-    },
-    {
-      key: "freeShippingThreshold",
-      label: "Free shipping from (₹)",
-      kind: "money",
-      required: true,
-      hint: "Orders of this amount or more ship free. Enter 0 for no free shipping.",
-    },
-    {
-      key: "deliveryEstimate",
-      label: "Delivery estimate",
-      kind: "text",
-      max: 60,
-      placeholder: "5–8 working days",
-    },
-    {
-      key: "courierName",
-      label: "Courier",
-      kind: "text",
-      max: 40,
-      placeholder: "India Post",
-    },
-    {
-      key: "trackingUrlTemplate",
-      label: "Tracking link",
-      kind: "url",
-      max: 300,
-      hint: "Put {trackingNumber} where the number goes, for example https://example.com/track?id={trackingNumber}",
-    },
-  ],
-  email: [
-    {
-      key: "senderName",
-      label: "Sender name",
-      kind: "text",
-      max: 60,
-      hint: "The name on the emails the store sends (sign-up and password-reset codes).",
-    },
-    {
-      key: "replyToEmail",
-      label: "Reply-to email",
-      kind: "email",
-      hint: "Where replies to those emails go.",
-    },
-  ],
-};
-
-const SECTIONS = ["general", "shipping", "email"];
-
-const norm = (kind, v) => {
-  const t = String(v ?? "").trim();
-  return kind === "money" && t !== "" && Number.isFinite(Number(t))
-    ? String(Number(t))
-    : t;
-};
-
-// Server object -> plain strings for the form inputs.
-function toDraft(data) {
+// Turn the server's object into editable strings (and the payment switch).
+function toValues(data) {
   const out = {};
-  for (const section of SECTIONS) {
-    out[section] = {};
-    for (const f of FIELDS[section])
-      out[section][f.key] = String(data?.[section]?.[f.key] ?? "");
+  for (const sec of SECTIONS) {
+    out[sec.id] = {};
+    for (const f of sec.fields)
+      out[sec.id][f.key] = toText(data?.[sec.id]?.[f.key]);
   }
-  out.general.logoUrl = String(data?.general?.logoUrl ?? "");
+  out.payment.onlinePaymentsEnabled =
+    data?.payment?.onlinePaymentsEnabled !== false;
   return out;
 }
 
-function validate(draft) {
-  const errors = {};
-  for (const section of SECTIONS) {
-    for (const f of FIELDS[section]) {
-      const v = String(draft[section][f.key] ?? "").trim();
-      const id = `${section}.${f.key}`;
-      if (!v) {
-        if (f.required)
-          errors[id] =
-            f.kind === "money"
-              ? "Enter an amount, 0 or more."
-              : "This can’t be empty.";
-        continue;
-      }
-      if (f.max && v.length > f.max)
-        errors[id] = `Keep this under ${f.max} characters.`;
-      else if (f.kind === "email" && !EMAIL_RE.test(v))
-        errors[id] = "Enter a valid email address.";
-      else if (f.kind === "phone" && !/^\d{10}$/.test(v))
-        errors[id] = "Enter a 10-digit phone number.";
-      else if (
-        f.kind === "money" &&
-        !(/^\d+(\.\d{1,2})?$/.test(v) && Number(v) <= 1000000)
-      )
-        errors[id] = "Enter an amount like 60 or 59.50.";
-      else if (
-        f.kind === "url" &&
-        !(v.startsWith("https://") && v.includes("{trackingNumber}"))
-      )
-        errors[id] = "Start with https:// and include {trackingNumber}.";
+function validateField(f, raw) {
+  const v = String(raw ?? "").trim();
+  if (!v) return f.required ? `Enter ${f.label.toLowerCase()}.` : null;
+  switch (f.type) {
+    case "email":
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+        ? null
+        : "Enter a valid email address.";
+    case "phone":
+      return /^\d{10}$/.test(v) ? null : "Enter exactly 10 digits.";
+    case "money": {
+      const n = Number(v);
+      return Number.isFinite(n) && n >= 0 && n <= 1000000
+        ? null
+        : "Enter an amount from 0 to 10,00,000.";
     }
+    case "int": {
+      const n = Number(v);
+      return Number.isInteger(n) && n >= 0
+        ? null
+        : "Enter a whole number, 0 or more.";
+    }
+    case "template":
+      if (!/^https?:\/\//i.test(v))
+        return "The link must start with http:// or https://.";
+      if (!v.includes("{trackingNumber}"))
+        return "The link must include {trackingNumber}.";
+      return null;
+    default:
+      return null;
   }
-  return errors;
 }
 
-function LogoField({ value, onChange }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+// Money and whole-number fields go to the API as numbers; empty text clears.
+function toPayload(f, raw) {
+  const v = String(raw ?? "").trim();
+  if (f.type === "money" || f.type === "int")
+    return v === "" ? null : Number(v);
+  return v;
+}
 
-  async function pick(e) {
+export default function AdminSettings() {
+  const { toast } = useAdminUI();
+  const [state, setState] = useState({ status: "loading" });
+  const [saved, setSaved] = useState(null); // what the server has
+  const [values, setValues] = useState(null); // what's in the forms
+  const [raw, setRaw] = useState(null); // full server object (read-only parts)
+  const [tab, setTab] = useState("general");
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const load = useCallback(async () => {
+    setState({ status: "loading" });
+    try {
+      const res = await api.get("/admin/settings");
+      const data = res.data?.settings || res.data;
+      setRaw(data);
+      setSaved(toValues(data));
+      setValues(toValues(data));
+      setState({ status: "ready" });
+    } catch (err) {
+      setState({
+        status: "error",
+        error: getApiError(err, "Could not load the settings."),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const section = SECTIONS.find((s) => s.id === tab);
+
+  function setField(key, value) {
+    setValues((v) => ({ ...v, [tab]: { ...v[tab], [key]: value } }));
+    setErrors((e) => ({ ...e, [key]: null }));
+    setFormError(null);
+  }
+
+  // Which fields in the open tab differ from what's saved.
+  function changedKeys(sec) {
+    if (!values) return [];
+    const keys = sec.fields.map((f) => f.key);
+    if (sec.id === "payment") keys.push("onlinePaymentsEnabled");
+    return keys.filter((k) => values[sec.id][k] !== saved[sec.id][k]);
+  }
+  const dirty =
+    state.status === "ready" ? changedKeys(section).length > 0 : false;
+
+  async function uploadLogo(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/"))
-      return setError(`${file.name} isn’t an image.`);
-    if (file.size > MAX_IMAGE_BYTES)
-      return setError(`${file.name} is larger than 5 MB.`);
-    setError(null);
-    setBusy(true);
+    if (!file.type.startsWith("image/")) {
+      setErrors((x) => ({ ...x, logoUrl: "Choose an image file." }));
+      return;
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      setErrors((x) => ({ ...x, logoUrl: "The image must be under 5 MB." }));
+      return;
+    }
+    setUploading(true);
     try {
       const fd = new FormData();
       fd.append("image", file);
       const res = await api.post("/admin/upload-image", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      onChange(res.data.url);
+      setField("logoUrl", res.data.url);
     } catch (err) {
-      setError(getApiError(err, "Could not upload the logo."));
+      setErrors((x) => ({
+        ...x,
+        logoUrl: getApiError(err, "Could not upload the logo."),
+      }));
     } finally {
-      setBusy(false);
+      setUploading(false);
     }
   }
 
-  return (
-    <div>
-      <span className="mb-1.5 block text-sm font-medium text-spine">
-        Store logo
-      </span>
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-400">
+  async function handleSave(e) {
+    e.preventDefault();
+    setFormError(null);
+    const errs = {};
+    for (const f of section.fields) {
+      const msg = validateField(f, values[section.id][f.key]);
+      if (msg) errs[f.key] = msg;
+    }
+    setErrors(errs);
+    if (Object.keys(errs).length) {
+      setFormError("Please fix the highlighted fields.");
+      return;
+    }
+
+    // Send only what changed, inside its section.
+    const body = {};
+    for (const key of changedKeys(section)) {
+      const f = section.fields.find((x) => x.key === key);
+      body[key] = f
+        ? toPayload(f, values[section.id][key])
+        : values[section.id][key];
+    }
+    setSaving(true);
+    try {
+      const res = await api.put("/admin/settings", { [section.id]: body });
+      const data = res.data?.settings || res.data;
+      setRaw(data);
+      const fresh = toValues(data);
+      setSaved(fresh);
+      setValues(fresh);
+      toast(`${section.label} settings saved.`);
+    } catch (err) {
+      setFormError(getApiError(err, "Could not save the settings."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function renderField(f) {
+    const id = `s-${f.key}`;
+    const value = values[section.id][f.key];
+    let control;
+    if (f.type === "textarea") {
+      control = (
+        <textarea
+          id={id}
+          rows={3}
+          className={textareaCls}
+          value={value}
+          onChange={(e) => setField(f.key, e.target.value)}
+        />
+      );
+    } else if (f.type === "logo") {
+      control = (
+        <div className="flex items-center gap-4">
+          <div className="grid h-16 w-16 flex-shrink-0 place-items-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 text-neutral-400">
             {value ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -218,393 +305,250 @@ function LogoField({ value, onChange }) {
               <ImagePlus size={20} />
             )}
           </div>
-          {value && (
-            <button
-              type="button"
-              aria-label="Remove logo"
-              onClick={() => onChange("")}
-              className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-white"
-            >
-              <X size={12} />
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm text-ink hover:bg-neutral-50">
+              {uploading ? "Uploading…" : value ? "Change logo" : "Upload logo"}
+              <input
+                id={id}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={uploading}
+                onChange={uploadLogo}
+              />
+            </label>
+            {value && (
+              <button
+                type="button"
+                onClick={() => setField("logoUrl", "")}
+                className="text-sm text-neutral-500 underline hover:text-red-600"
+              >
+                Remove
+              </button>
+            )}
+          </div>
         </div>
-        <label
-          className={`${btnOutline} h-9 cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""}`}
-        >
-          <ImagePlus size={15} />{" "}
-          {busy ? "Uploading…" : value ? "Change logo" : "Upload logo"}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={pick}
-            className="sr-only"
-          />
-        </label>
-      </div>
-      {error ? (
-        <p className="mt-1 text-xs text-red-600">{error}</p>
-      ) : (
-        <p className="mt-1 text-xs text-neutral-500">PNG or JPG, up to 5 MB.</p>
-      )}
-    </div>
-  );
-}
-
-export default function AdminSettings() {
-  const { toast } = useAdminUI();
-  const [state, setState] = useState({ status: "loading" });
-  const [saved, setSaved] = useState(null);
-  const [draft, setDraft] = useState(null);
-  const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState("general");
-
-  const load = useCallback(() => {
-    setState({ status: "loading" });
-    api
-      .get("/admin/settings")
-      .then((res) => {
-        setState({ status: "ready", raw: res.data });
-        setSaved(toDraft(res.data));
-        setDraft(toDraft(res.data));
-      })
-      .catch((err) => {
-        if (isUnsupported(err)) setState({ status: "unsupported" });
-        else
-          setState({
-            status: "error",
-            error: getApiError(err, "Could not load settings."),
-          });
-      });
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  // Which fields differ from what's saved, per section.
-  const changes = useMemo(() => {
-    const out = {};
-    if (!draft || !saved) return out;
-    for (const section of SECTIONS) {
-      const keys = FIELDS[section].map((f) => f.key);
-      if (section === "general") keys.push("logoUrl");
-      for (const key of keys) {
-        const kind = FIELDS[section].find((f) => f.key === key)?.kind;
-        if (
-          norm(kind, draft[section][key]) !== norm(kind, saved[section][key])
-        ) {
-          (out[section] ||= []).push(key);
-        }
-      }
+      );
+    } else {
+      control = (
+        <input
+          id={id}
+          type={
+            f.type === "email" ? "email" : f.type === "phone" ? "tel" : "text"
+          }
+          inputMode={
+            f.type === "phone" || f.type === "int"
+              ? "numeric"
+              : f.type === "money"
+                ? "decimal"
+                : undefined
+          }
+          maxLength={f.type === "phone" ? 10 : undefined}
+          className={inputCls}
+          value={value}
+          placeholder={f.placeholder || ""}
+          onChange={(e) =>
+            setField(
+              f.key,
+              f.type === "phone"
+                ? e.target.value.replace(/\D/g, "")
+                : e.target.value,
+            )
+          }
+        />
+      );
     }
-    return out;
-  }, [draft, saved]);
-
-  const dirty = Object.keys(changes).length > 0;
-
-  // Warn before the page is closed with unsaved changes.
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
-
-  function setField(section, key, value) {
-    setDraft((d) => ({ ...d, [section]: { ...d[section], [key]: value } }));
-    setErrors((e) =>
-      e[`${section}.${key}`] ? { ...e, [`${section}.${key}`]: undefined } : e,
-    );
-    setServerError(null);
-  }
-
-  async function handleSave() {
-    const found = validate(draft);
-    setErrors(found);
-    const firstBad = TABS.find((t) =>
-      Object.keys(found).some((k) => k.startsWith(`${t.id}.`)),
-    );
-    if (firstBad) {
-      setTab(firstBad.id);
-      return;
-    }
-
-    // Send only what changed; the backend leaves everything else as it is.
-    const body = {};
-    for (const [section, keys] of Object.entries(changes)) {
-      body[section] = {};
-      for (const key of keys) {
-        const f = FIELDS[section].find((x) => x.key === key);
-        const t = String(draft[section][key] ?? "").trim();
-        if (f?.kind === "money") body[section][key] = Number(t);
-        else body[section][key] = t === "" && !f?.required ? null : t;
-      }
-    }
-
-    setSaving(true);
-    setServerError(null);
-    try {
-      const res = await api.put("/admin/settings", body);
-      setState({ status: "ready", raw: res.data });
-      setSaved(toDraft(res.data));
-      setDraft(toDraft(res.data));
-      toast("Settings saved.");
-    } catch (err) {
-      setServerError(getApiError(err, "Could not save the settings."));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function renderField(section, f) {
-    const id = `${section}.${f.key}`;
-    const common = {
-      id: `s-${section}-${f.key}`,
-      value: draft[section][f.key],
-      placeholder: f.placeholder,
-      onChange: (e) => setField(section, f.key, e.target.value),
-    };
     return (
-      <Field
-        key={id}
-        label={f.required ? `${f.label} *` : f.label}
-        htmlFor={common.id}
-        hint={f.hint}
-        error={errors[id]}
-      >
-        {f.kind === "textarea" ? (
-          <textarea rows={3} className={textareaCls} {...common} />
-        ) : f.kind === "money" ? (
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            className={inputCls}
-            {...common}
-          />
-        ) : f.kind === "email" ? (
-          <input type="email" className={inputCls} {...common} />
-        ) : f.kind === "phone" ? (
-          <input
-            type="tel"
-            inputMode="numeric"
-            maxLength={10}
-            className={inputCls}
-            {...common}
-            onChange={(e) =>
-              setField(section, f.key, e.target.value.replace(/\D/g, ""))
-            }
-          />
-        ) : (
-          <input type="text" className={inputCls} {...common} />
-        )}
-      </Field>
+      <div key={f.key} className={f.wide ? "md:col-span-2" : undefined}>
+        <Field
+          label={`${f.label}${f.required ? " *" : ""}`}
+          htmlFor={id}
+          hint={f.hint}
+          error={errors[f.key]}
+        >
+          {control}
+        </Field>
+      </div>
     );
   }
 
-  const payment = state.status === "ready" ? state.raw?.payment || {} : {};
-  const hasProblem = (id) =>
-    Object.keys(errors).some((k) => errors[k] && k.startsWith(`${id}.`));
+  const payment = raw?.payment || {};
 
   return (
     <AdminLayout title="Settings">
       <PageHeader title="Settings" subtitle="Manage your store settings." />
 
-      {state.status === "loading" && (
-        <Card>
-          <TableSkeleton rows={6} cols={2} />
-        </Card>
-      )}
-      {state.status === "error" && (
-        <Card>
+      <Card>
+        {state.status === "loading" && <TableSkeleton rows={5} cols={2} />}
+        {state.status === "error" && (
           <ErrorState message={state.error} onRetry={load} />
-        </Card>
-      )}
-      {state.status === "unsupported" && (
-        <Card>
-          <NotSupported
-            what="Settings"
-            endpoint="GET / PUT /api/admin/settings"
-          />
-        </Card>
-      )}
+        )}
 
-      {state.status === "ready" && draft && (
-        <Card>
-          <div
-            role="tablist"
-            aria-label="Settings sections"
-            className="flex flex-wrap gap-1 border-b border-neutral-100 px-3 pt-3"
-          >
-            {TABS.map((t) => {
-              const marked = !!changes[t.id] || hasProblem(t.id);
-              return (
+        {state.status === "ready" && (
+          <>
+            <div
+              role="tablist"
+              aria-label="Settings sections"
+              className="flex gap-1 overflow-x-auto border-b border-neutral-100 px-3 pt-3"
+            >
+              {SECTIONS.map((t) => (
                 <button
                   key={t.id}
                   role="tab"
                   id={`tab-${t.id}`}
                   aria-selected={tab === t.id}
                   aria-controls={`panel-${t.id}`}
-                  onClick={() => setTab(t.id)}
-                  className={`-mb-px flex h-10 items-center gap-1.5 border-b-2 px-4 text-sm transition ${
+                  onClick={() => {
+                    setTab(t.id);
+                    setErrors({});
+                    setFormError(null);
+                  }}
+                  className={`-mb-px h-10 flex-shrink-0 border-b-2 px-4 text-sm transition ${
                     tab === t.id
                       ? "border-spine font-medium text-spine"
                       : "border-transparent text-neutral-500 hover:text-ink"
                   }`}
                 >
                   {t.label}
-                  {marked && (
+                  {changedKeys(t).length > 0 && (
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${hasProblem(t.id) ? "bg-red-500" : "bg-amber-500"}`}
-                      title={
-                        hasProblem(t.id) ? "Needs attention" : "Unsaved changes"
-                      }
+                      aria-label="unsaved changes"
+                      className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500 align-middle"
                     />
                   )}
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          <div
-            role="tabpanel"
-            id={`panel-${tab}`}
-            aria-labelledby={`tab-${tab}`}
-            className="max-w-3xl p-5 sm:p-6"
-          >
-            {tab === "general" && (
-              <div className="flex flex-col gap-5">
-                <LogoField
-                  value={draft.general.logoUrl}
-                  onChange={(url) => setField("general", "logoUrl", url)}
-                />
-                {FIELDS.general.map((f) => renderField("general", f))}
-              </div>
-            )}
+            <form
+              onSubmit={handleSave}
+              noValidate
+              role="tabpanel"
+              id={`panel-${section.id}`}
+              aria-labelledby={`tab-${section.id}`}
+              className="p-5 sm:p-6"
+            >
+              {section.id === "payment" ? (
+                <div className="space-y-5">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="s-onlinePaymentsEnabled"
+                      className={`${checkCls} mt-0.5`}
+                      checked={values.payment.onlinePaymentsEnabled}
+                      onChange={(e) => {
+                        setValues((v) => ({
+                          ...v,
+                          payment: {
+                            ...v.payment,
+                            onlinePaymentsEnabled: e.target.checked,
+                          },
+                        }));
+                        setFormError(null);
+                      }}
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-ink">
+                        Accept online payments
+                      </span>
+                      <span className="block text-sm text-neutral-500">
+                        Customers pay by card, UPI, netbanking or wallet through
+                        Razorpay.
+                      </span>
+                    </span>
+                  </label>
 
-            {tab === "shipping" && (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                {FIELDS.shipping.map((f) => (
-                  <div
-                    key={f.key}
-                    className={f.kind === "url" ? "md:col-span-2" : ""}
-                  >
-                    {renderField("shipping", f)}
-                  </div>
-                ))}
-              </div>
-            )}
+                  {!values.payment.onlinePaymentsEnabled && (
+                    <Notice tone="amber">
+                      While this is off, customers can’t check out. Turn it back
+                      on to sell again.
+                    </Notice>
+                  )}
 
-            {tab === "email" && (
-              <div className="flex flex-col gap-5">
-                {FIELDS.email.map((f) => renderField("email", f))}
-              </div>
-            )}
-
-            {tab === "payment" && (
-              <div className="flex flex-col gap-4">
-                <p className="text-sm text-neutral-600">
-                  Customers pay online through Razorpay. These details are set
-                  on the server, so they can be checked here but not changed.
-                </p>
-                <dl className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 text-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                    <dt className="text-neutral-500">Mode</dt>
-                    <dd>
-                      <Pill tone={payment.mode === "live" ? "green" : "amber"}>
-                        {payment.mode === "live" ? "Live" : "Test"}
-                      </Pill>
-                    </dd>
+                  <div className="grid grid-cols-1 gap-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4 sm:grid-cols-3">
+                    <div>
+                      <p className="text-xs text-neutral-500">Mode</p>
+                      <div className="mt-1">
+                        <Pill
+                          tone={
+                            String(payment.mode).toLowerCase() === "live"
+                              ? "green"
+                              : "amber"
+                          }
+                        >
+                          {payment.mode
+                            ? String(payment.mode).charAt(0).toUpperCase() +
+                              String(payment.mode).slice(1).toLowerCase()
+                            : "Unknown"}
+                        </Pill>
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-neutral-500">
+                        Razorpay key ID
+                      </p>
+                      <p className="mt-1 break-all font-mono text-sm text-ink">
+                        {payment.razorpayKeyId || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">Secret keys</p>
+                      <div className="mt-1">
+                        <Pill
+                          tone={payment.secretsConfigured ? "green" : "red"}
+                        >
+                          {payment.secretsConfigured
+                            ? "Set on server"
+                            : "Not set"}
+                        </Pill>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                    <dt className="text-neutral-500">Razorpay key ID</dt>
-                    <dd className="break-all font-mono text-xs text-ink">
-                      {payment.razorpayKeyId || "—"}
-                    </dd>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-                    <dt className="text-neutral-500">Secret key</dt>
-                    <dd
-                      className={`flex items-center gap-1.5 font-medium ${
-                        payment.secretsConfigured
-                          ? "text-emerald-700"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {payment.secretsConfigured ? (
-                        <>
-                          <CheckCircle2 size={15} /> Configured
-                        </>
-                      ) : (
-                        <>
-                          <AlertTriangle size={15} /> Not configured
-                        </>
-                      )}
-                    </dd>
-                  </div>
-                </dl>
-                {payment.mode !== "live" && (
-                  <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-                    The store is in test mode, so no real money is taken. Switch
-                    the Razorpay keys on the server to go live.
+                  <p className="text-xs text-neutral-500">
+                    The mode and keys are set on the server and can’t be changed
+                    here. Secret keys are never shown.
                   </p>
-                )}
-                <p className="text-xs text-neutral-500">
-                  Cash on delivery isn’t available yet, so there is no payment
-                  switch to change here.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  {section.fields.map(renderField)}
+                </div>
+              )}
+
+              {section.id === "email" && (
+                <p className="mt-5 text-xs text-neutral-500">
+                  Right now the store only emails sign-up and password-reset
+                  codes. Order emails and low-stock alerts aren’t built yet.
                 </p>
-              </div>
-            )}
+              )}
 
-            {serverError && (
-              <p
-                role="alert"
-                className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-              >
-                {serverError}
-              </p>
-            )}
-          </div>
-
-          {(dirty || Object.keys(errors).some((k) => errors[k])) && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 bg-neutral-50/60 px-5 py-3 sm:px-6">
-              <p className="text-sm text-neutral-600">
-                {Object.keys(errors).some((k) => errors[k])
-                  ? "Fix the highlighted fields to save."
-                  : "You have unsaved changes."}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setDraft(saved);
-                    setErrors({});
-                    setServerError(null);
-                  }}
-                  disabled={saving || !dirty}
-                  className={btnOutline}
+              {formError && (
+                <p
+                  role="alert"
+                  className="mt-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
                 >
-                  Discard
-                </button>
+                  {formError}
+                </p>
+              )}
+
+              <div className="mt-6 flex items-center justify-end gap-3">
+                {dirty && (
+                  <span className="text-xs text-amber-700">
+                    Unsaved changes
+                  </span>
+                )}
                 <button
-                  onClick={handleSave}
-                  disabled={saving || !dirty}
+                  type="submit"
+                  disabled={saving || !dirty || uploading}
                   className={btnPrimary}
                 >
                   {saving ? "Saving…" : "Save changes"}
                 </button>
               </div>
-            </div>
-          )}
-        </Card>
-      )}
+            </form>
+          </>
+        )}
+      </Card>
     </AdminLayout>
   );
 }

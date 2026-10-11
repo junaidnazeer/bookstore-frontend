@@ -12,7 +12,8 @@ import {
   Modal,
   Pagination,
   PageHeader,
-  LowStockTag,
+  Pill,
+  StockBadge,
   ProductStatusBadge,
   TableSkeleton,
   btnOutline,
@@ -35,33 +36,78 @@ import {
   toArray,
 } from "../../../lib/admin";
 
+const STATUS_META = {
+  ACTIVE: { label: "Active", tone: "green" },
+  DRAFT: { label: "Draft", tone: "gray" },
+  OUT_OF_STOCK: { label: "Out of Stock", tone: "red" },
+};
+
+// Products saved before statuses existed count as Active.
+function StatusPill({ status }) {
+  const meta = STATUS_META[status] || STATUS_META.ACTIVE;
+  return <Pill tone={meta.tone}>{meta.label}</Pill>;
+}
+
+function variantLabel(v) {
+  return [v.size, v.color].filter(Boolean).join(" · ") || "Default";
+}
+
 function RestockModal({ product, onClose, onSaved }) {
   const { toast } = useAdminUI();
+  const variants = product.variants || [];
+  const hasVariants = variants.length > 0;
   const [quantity, setQuantity] = useState("");
+  const [adds, setAdds] = useState({}); // variant index -> quantity to add
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   async function handleSave(e) {
     e.preventDefault();
-    const add = Number(quantity);
-    if (!Number.isInteger(add) || add <= 0) {
-      setError("Enter a whole number above 0.");
-      return;
-    }
-    setSaving(true);
     setError(null);
+    let body;
+    let total = 0;
+
+    if (hasVariants) {
+      for (const text of Object.values(adds)) {
+        if (String(text).trim() === "") continue;
+        const n = Number(text);
+        if (!Number.isInteger(n) || n <= 0) {
+          setError("Enter whole numbers above 0, or leave a row blank.");
+          return;
+        }
+        total += n;
+      }
+      if (total === 0) {
+        setError("Enter a quantity for at least one variant.");
+        return;
+      }
+      // The API replaces ALL variants, so the full list goes back.
+      body = {
+        variants: variants.map((v, i) => {
+          const add = Number(adds[i]) > 0 ? Number(adds[i]) : 0;
+          const out = {
+            stock: Number(v.stock) + add,
+            price: Number(v.price ?? product.price),
+          };
+          if (v.size) out.size = v.size;
+          if (v.color) out.color = v.color;
+          if (v.sku) out.sku = v.sku;
+          return out;
+        }),
+      };
+    } else {
+      total = Number(quantity);
+      if (!Number.isInteger(total) || total <= 0) {
+        setError("Enter a whole number above 0.");
+        return;
+      }
+      body = { stock: Number(product.stock) + total };
+    }
+
+    setSaving(true);
     try {
-      // The backend's update clears originalPrice, subcategory, brand and sku when
-      // they're left out of the request, so send their current values back with
-      // the new stock. (Sending only { stock } would silently erase them.)
-      await api.put(`/admin/products/${product.id}`, {
-        stock: Number(product.stock) + add,
-        originalPrice: product.originalPrice,
-        subcategory: product.subcategory,
-        brand: product.brand,
-        sku: product.sku,
-      });
-      toast(`Added ${add} to ${product.name}.`);
+      await api.put(`/admin/products/${product.id}`, body);
+      toast(`Added ${total} to ${product.name}.`);
       onSaved();
     } catch (err) {
       setError(getApiError(err, "Could not update stock."));
@@ -76,18 +122,49 @@ function RestockModal({ product, onClose, onSaved }) {
         <p className="mb-4 text-sm text-neutral-500">
           Current stock: {product.stock}
         </p>
-        <Field label="Quantity to add" htmlFor="restock-qty" error={error}>
-          <input
-            id="restock-qty"
-            type="number"
-            min="1"
-            step="1"
-            className={inputCls}
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            placeholder="e.g. 10"
-          />
-        </Field>
+
+        {hasVariants ? (
+          <div className="space-y-2">
+            <p className="text-xs text-neutral-500">
+              Enter how many to add to each variant. Leave blank to skip.
+            </p>
+            {variants.map((v, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-ink">{variantLabel(v)}</p>
+                  <p className="text-xs text-neutral-500">Current: {v.stock}</p>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  aria-label={`Add stock to ${variantLabel(v)}`}
+                  className={`${inputCls} w-24`}
+                  value={adds[i] ?? ""}
+                  onChange={(e) =>
+                    setAdds((a) => ({ ...a, [i]: e.target.value }))
+                  }
+                  placeholder="+0"
+                />
+              </div>
+            ))}
+            {error && <p className="text-xs text-red-600">{error}</p>}
+          </div>
+        ) : (
+          <Field label="Quantity to add" htmlFor="restock-qty" error={error}>
+            <input
+              id="restock-qty"
+              type="number"
+              min="1"
+              step="1"
+              className={inputCls}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="e.g. 10"
+            />
+          </Field>
+        )}
+
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" onClick={onClose} className={btnOutline}>
             Cancel
@@ -153,7 +230,10 @@ export default function AdminProducts() {
         (p) =>
           (!term.trim() ||
             includesText(p.name, term) ||
-            includesText(p.subcategory, term)) &&
+            includesText(p.subcategory, term) ||
+            includesText(p.brand, term) ||
+            includesText(p.sku, term) ||
+            (p.variants || []).some((v) => includesText(v.sku, term))) &&
           (!category || p.category?.slug === category),
       ),
     [products, term, category],
@@ -385,6 +465,13 @@ export default function AdminProducts() {
                                   {p.subcategory}
                                 </p>
                               )}
+                              {(p.brand || p.sku) && (
+                                <p className="text-xs text-neutral-400">
+                                  {[p.brand, p.sku && `SKU ${p.sku}`]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </p>
+                              )}
                             </td>
                             <td className={`${tdCls} text-neutral-600`}>
                               {p.category?.name || "—"}
@@ -401,7 +488,21 @@ export default function AdminProducts() {
                             </td>
                             <td className={tdCls}>
                               {p.stock}
-                              <LowStockTag stock={p.stock} />
+                              {p.variants?.length > 0 && (
+                                <span className="block text-xs text-neutral-400">
+                                  {p.variants.length} variant
+                                  {p.variants.length > 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </td>
+                            <td className={tdCls}>
+                              <div className="flex flex-col items-start gap-1">
+                                <StatusPill status={p.status} />
+                                <StockBadge stock={p.stock} />
+                                {p.featured && (
+                                  <Pill tone="indigo">Featured</Pill>
+                                )}
+                              </div>
                             </td>
                             <td className={tdCls}>
                               <ProductStatusBadge status={p.status} />
@@ -500,10 +601,23 @@ export default function AdminProducts() {
                                 )}
                                 <span className="text-neutral-500">
                                   Stock {p.stock}
-                                  <LowStockTag stock={p.stock} />
+                                  {p.variants?.length > 0
+                                    ? ` · ${p.variants.length} variants`
+                                    : ""}
                                 </span>
+                                <StatusPill status={p.status} />
                                 <StockBadge stock={p.stock} />
+                                {p.featured && (
+                                  <Pill tone="indigo">Featured</Pill>
+                                )}
                               </div>
+                              {(p.brand || p.sku) && (
+                                <p className="mt-1 text-xs text-neutral-400">
+                                  {[p.brand, p.sku && `SKU ${p.sku}`]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">

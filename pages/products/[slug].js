@@ -234,7 +234,18 @@ export default function ProductDetail() {
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    addItem({ ...product, size: selectedSize, color: selectedColor, quantity });
+    const unit = selectedVariant ? selectedVariant.price : product.price;
+    addItem({
+      ...product,
+      price: unit,
+      originalPrice:
+        product.originalPrice > unit ? product.originalPrice : undefined,
+      stock: selectedVariant ? selectedVariant.stock : product.stock,
+      perVariant: Boolean(selectedVariant),
+      size: selectedSize,
+      color: selectedColor,
+      quantity,
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
@@ -296,7 +307,58 @@ export default function ProductDetail() {
   const attributeKeys = DISPLAY_ATTRIBUTES[product.category] || [];
   const attributes = product.attributes || {};
   const wishlisted = isWishlisted(product.id);
-  const inStock = product.stock > 0;
+  const variants = product.variants || [];
+  const hasVariants = variants.length > 0;
+  const sizeList = product.sizes || [];
+  const colorList = product.colors || [];
+  // The variant that matches what the customer picked (null until they have
+  // picked everything this product needs).
+  const selectedVariant =
+    hasVariants &&
+    (sizeList.length === 0 || selectedSize) &&
+    (colorList.length === 0 || selectedColor)
+      ? variants.find(
+          (v) =>
+            (v.size || null) === (selectedSize || null) &&
+            (v.color || null) === (selectedColor || null),
+        ) || null
+      : null;
+  // A size or colour is greyed out when nothing in stock matches it.
+  const sizeInStock = (size) =>
+    !hasVariants ||
+    variants.some(
+      (v) =>
+        v.size === size &&
+        (!selectedColor || v.color === selectedColor) &&
+        v.stock > 0,
+    );
+  const colorInStock = (color) =>
+    !hasVariants ||
+    variants.some(
+      (v) =>
+        v.color === color &&
+        (!selectedSize || v.size === selectedSize) &&
+        v.stock > 0,
+    );
+  const variantPrices = variants.map((v) => v.price).filter(Number.isFinite);
+  const lowestPrice = variantPrices.length ? Math.min(...variantPrices) : null;
+  const pricesDiffer =
+    lowestPrice !== null && Math.max(...variantPrices) !== lowestPrice;
+  const showFrom = !selectedVariant && pricesDiffer;
+  const unitPrice = selectedVariant
+    ? selectedVariant.price
+    : showFrom
+      ? lowestPrice
+      : product.price;
+  const shownOriginal =
+    !showFrom && product.originalPrice > unitPrice
+      ? product.originalPrice
+      : null;
+  const shownDiscount = shownOriginal
+    ? Math.round(((shownOriginal - unitPrice) / shownOriginal) * 100)
+    : null;
+  const stockNow = selectedVariant ? selectedVariant.stock : product.stock;
+  const inStock = stockNow > 0 && product.status !== "OUT_OF_STOCK";
   const gallery =
     product.images && product.images.length > 0 ? product.images : [];
 
@@ -393,16 +455,16 @@ export default function ProductDetail() {
 
         <div className="flex items-center gap-2 mt-2">
           <p className="text-2xl font-semibold" style={{ color: SPINE }}>
-            ₹{product.price}
+            {showFrom ? "From " : ""}₹{unitPrice}
           </p>
-          {product.originalPrice && (
+          {shownOriginal && (
             <>
               <p className="text-sm text-neutral-400 line-through">
-                ₹{product.originalPrice}
+                ₹{shownOriginal}
               </p>
-              {product.discountPercent && (
+              {shownDiscount > 0 && (
                 <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
-                  {product.discountPercent}% OFF
+                  {shownDiscount}% OFF
                 </span>
               )}
             </>
@@ -414,9 +476,9 @@ export default function ProductDetail() {
         >
           {!inStock
             ? "Out of stock"
-            : product.stock <= 5
-              ? `Only ${product.stock} left`
-              : `In stock (${product.stock} available)`}
+            : stockNow <= 5
+              ? `Only ${stockNow} left`
+              : `In stock (${stockNow} available)`}
         </p>
 
         <h3 className="font-medium text-ink mt-5 mb-1">Product Details</h3>
@@ -480,35 +542,117 @@ export default function ProductDetail() {
           </div>
         )}
 
-        {product.colors && product.colors.length > 0 && (
-          <div id="color-section" className="mt-4">
-            <p className="text-sm text-neutral-500 mb-1">Color</p>
-            {colorError && (
-              <p className="text-sm text-red-600 mb-1">Please select a color</p>
-            )}
-            <div className="flex gap-2">
-              {product.colors.map((color) => (
+        {sizeList.length > 0 && (
+          <div id="size-section" className="mt-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-ink">
+                Size
+                {selectedSize && (
+                  <span className="text-neutral-500 font-normal">
+                    {" "}
+                    : {selectedSize}
+                  </span>
+                )}
+              </p>
+              {attributes.size_guide && (
                 <button
-                  key={color}
-                  onClick={() => {
-                    setSelectedColor(color);
-                    setColorError(false);
-                  }}
-                  className={`px-3 py-1 rounded border text-sm ${
-                    selectedColor === color
-                      ? "text-white"
-                      : "border-neutral-300 text-ink"
-                  }`}
-                  style={
-                    selectedColor === color
-                      ? { backgroundColor: SPINE, borderColor: SPINE }
-                      : {}
-                  }
+                  onClick={() => setShowGuide((v) => !v)}
+                  className="text-sm underline"
+                  style={{ color: SPINE }}
                 >
-                  {color}
+                  Size guide
                 </button>
-              ))}
+              )}
             </div>
+            <div className="flex flex-wrap gap-2">
+              {sizeList.map((size) => {
+                const available = sizeInStock(size);
+                const active = selectedSize === size;
+                return (
+                  <button
+                    key={size}
+                    disabled={!available}
+                    onClick={() => {
+                      setSelectedSize(active ? null : size);
+                      setSizeError(false);
+                      setQuantity(1);
+                    }}
+                    className={`min-w-[48px] h-10 px-3 rounded-lg border text-sm transition-colors ${
+                      !available
+                        ? "border-neutral-200 text-neutral-300 line-through cursor-not-allowed"
+                        : active
+                          ? "text-white"
+                          : "border-neutral-300 text-ink hover:border-neutral-500"
+                    }`}
+                    style={
+                      active && available
+                        ? { backgroundColor: SPINE, borderColor: SPINE }
+                        : {}
+                    }
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+            {sizeError && (
+              <p className="text-sm text-red-600 mt-2">Please select a size</p>
+            )}
+            {showGuide && attributes.size_guide && (
+              <p className="text-sm text-neutral-600 bg-white border border-neutral-200 rounded-lg p-3 mt-3">
+                {attributes.size_guide}
+              </p>
+            )}
+          </div>
+        )}
+
+        {colorList.length > 0 && (
+          <div id="color-section" className="mt-5">
+            <p className="text-sm font-medium text-ink mb-2">
+              Colour
+              {selectedColor && (
+                <span className="text-neutral-500 font-normal">
+                  {" "}
+                  : {selectedColor}
+                </span>
+              )}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {colorList.map((color) => {
+                const available = colorInStock(color);
+                const active = selectedColor === color;
+                return (
+                  <button
+                    key={color}
+                    disabled={!available}
+                    onClick={() => {
+                      setSelectedColor(active ? null : color);
+                      setColorError(false);
+                      setQuantity(1);
+                    }}
+                    className={`h-10 px-3 rounded-lg border text-sm transition-colors ${
+                      !available
+                        ? "border-neutral-200 text-neutral-300 line-through cursor-not-allowed"
+                        : active
+                          ? "text-white"
+                          : "border-neutral-300 text-ink hover:border-neutral-500"
+                    }`}
+                    style={
+                      active && available
+                        ? { backgroundColor: SPINE, borderColor: SPINE }
+                        : {}
+                    }
+                  >
+                    {color}
+                  </button>
+                );
+              })}
+            </div>
+            {colorError && (
+              <p className="text-sm text-red-600 mt-2">
+                Please select a colour
+              </p>
+            )}
           </div>
         )}
 
@@ -524,9 +668,7 @@ export default function ProductDetail() {
             </button>
             <span className="px-3 text-sm w-6 text-center">{quantity}</span>
             <button
-              onClick={() =>
-                setQuantity((q) => Math.min(product.stock || 1, q + 1))
-              }
+              onClick={() => setQuantity((q) => Math.min(stockNow || 1, q + 1))}
               className="p-2.5"
               aria-label="Increase quantity"
             >

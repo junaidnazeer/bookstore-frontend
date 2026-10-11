@@ -140,14 +140,14 @@ function ProductTile({ product, addItem }) {
       <p className="text-spine font-semibold mt-1">₹{product.price}</p>
       <button
         onClick={() =>
-          product.sizes && product.sizes.length > 0
+          product.hasOptions || (product.sizes && product.sizes.length > 0)
             ? router.push(`/products/${product.slug}`)
             : addItem(product)
         }
         className="mt-2 px-3 py-1.5 bg-spine text-white text-sm rounded hover:opacity-90 transition-opacity"
       >
-        {product.sizes && product.sizes.length > 0
-          ? "Select Size"
+        {product.hasOptions || (product.sizes && product.sizes.length > 0)
+          ? "Select Options"
           : "Add to Cart"}
       </button>
     </div>
