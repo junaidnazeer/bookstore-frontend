@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useCart } from "../lib/cart-context";
 import api from "../lib/api";
-import { deliveryFor, rupees, useStoreSettings } from "../lib/store-settings";
 import { MapPin, Plus, Pencil, ArrowLeft } from "lucide-react";
+import { useShipping } from "../lib/useShipping";
 
 const EMPTY_FORM = {
   label: "Home",
@@ -31,8 +31,9 @@ function formatAddress(addr) {
 export default function Checkout() {
   const router = useRouter();
   const { items, total, clearCart } = useCart();
-  const settings = useStoreSettings();
-  const delivery = deliveryFor(total, settings);
+  const { loaded, shippingFor, onlinePaymentsEnabled } = useShipping();
+  const shipping = shippingFor(total);
+  const grandTotal = total + shipping;
 
   const [checkedAuth, setCheckedAuth] = useState(false);
 
@@ -514,14 +515,25 @@ export default function Checkout() {
 
             {error && <p className="text-red-600 text-sm">{error}</p>}
 
+            {!onlinePaymentsEnabled && (
+              <p className="text-red-600 text-sm">
+                Online payments are temporarily unavailable. Please try again
+                later.
+              </p>
+            )}
+
             <button
               type="submit"
-              disabled={loading || addressesLoading || !selectedAddressId}
+              disabled={
+                loading ||
+                addressesLoading ||
+                !selectedAddressId ||
+                !loaded ||
+                !onlinePaymentsEnabled
+              }
               className="mt-2 px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {loading
-                ? "Processing..."
-                : `Place order — ₹${rupees(total + delivery.fee)}`}
+              {loading ? "Processing..." : `Place order — ₹${grandTotal}`}
             </button>
           </form>
 
@@ -558,21 +570,17 @@ export default function Checkout() {
               )}
               <div className="flex justify-between text-neutral-600">
                 <span>Delivery</span>
-                {!delivery.known ? (
-                  <span className="text-neutral-500">
-                    Calculated at payment
-                  </span>
-                ) : delivery.fee === 0 ? (
+                {!loaded ? (
+                  <span>…</span>
+                ) : shipping === 0 ? (
                   <span className="text-green-600 font-medium">Free</span>
                 ) : (
-                  <span>₹{rupees(delivery.fee)}</span>
+                  <span>₹{shipping}</span>
                 )}
               </div>
               <div className="flex justify-between font-medium pt-2 border-t border-neutral-200">
                 <span>Total</span>
-                <span className="text-brass">
-                  ₹{rupees(total + delivery.fee)}
-                </span>
+                <span className="text-brass">₹{grandTotal}</span>
               </div>
             </div>
           </div>

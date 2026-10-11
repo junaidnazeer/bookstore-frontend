@@ -78,7 +78,27 @@ export default function AdminLogin() {
 
       {/* Warm Islamic backdrop: wide scene on laptops/desktops, a narrower
           portrait composition on phones and tablets. */}
-      <div className="relative min-h-dvh w-full overflow-x-hidden max-md:-mb-[calc(80px+env(safe-area-inset-bottom,0px))] bg-[#efe8da] bg-cover bg-bottom bg-no-repeat bg-[url('/admin-login/admin-bg-mobile.jpg')] lg:bg-[url('/admin-login/admin-bg-desktop.jpg')]">
+      <div className="relative min-h-dvh w-full overflow-x-hidden max-md:-mb-[calc(80px+env(safe-area-inset-bottom,0px))] bg-[#efe8da]">
+        {/* Faint mosque skyline along the bottom, same as the customer login pages */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 left-0 flex h-32 w-full items-end justify-around overflow-hidden text-spine opacity-[0.08]"
+        >
+          {Array.from({ length: 7 }).map((_, i) => (
+            <svg
+              key={i}
+              width="80"
+              height="128"
+              viewBox="0 0 80 128"
+              fill="none"
+            >
+              <rect x="30" y="60" width="20" height="68" fill="currentColor" />
+              <circle cx="40" cy="55" r="16" fill="currentColor" />
+              <rect x="37" y="15" width="6" height="25" fill="currentColor" />
+              <circle cx="40" cy="12" r="4" fill="currentColor" />
+            </svg>
+          ))}
+        </div>
         <main className="relative z-10 mx-auto flex min-h-dvh w-full max-w-[520px] flex-col items-center justify-center px-4 py-4 [@media(min-height:881px)]:sm:py-10">
           {/* Brand */}
           <div className="mb-4 flex flex-col items-center text-center [@media(min-height:881px)]:sm:mb-8">

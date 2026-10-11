@@ -79,7 +79,7 @@ function ProductGridCard({ product }) {
 
   function handleAdd() {
     // Clothing needs a size, so send the customer to pick one first.
-    if (product.sizes && product.sizes.length > 0) {
+    if (product.hasOptions || (product.sizes && product.sizes.length > 0)) {
       router.push(`/products/${product.slug}`);
       return;
     }
@@ -141,8 +141,8 @@ function ProductGridCard({ product }) {
       >
         {added
           ? "Added ✓"
-          : product.sizes && product.sizes.length > 0
-            ? "Select Size"
+          : product.hasOptions || (product.sizes && product.sizes.length > 0)
+            ? "Select Options"
             : "Add to Cart"}
       </button>
     </div>
