@@ -205,7 +205,10 @@ export default function Checkout() {
             router.push(`/order-confirmation?orderId=${result.data.id}`);
           } catch (err) {
             setError(
-              "Payment succeeded but we couldn't confirm your order. Please contact support.",
+              err.response?.status === 409
+                ? err.response.data?.error ||
+                    "An item sold out while you were paying. Your payment will be refunded."
+                : "Payment succeeded but we couldn't confirm your order. Please contact support.",
             );
             setLoading(false);
           }

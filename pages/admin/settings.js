@@ -108,8 +108,16 @@ function toValues(data) {
   const out = {};
   for (const sec of SECTIONS) {
     out[sec.id] = {};
-    for (const f of sec.fields)
-      out[sec.id][f.key] = toText(data?.[sec.id]?.[f.key]);
+    for (const f of sec.fields) {
+      const v = data?.[sec.id]?.[f.key];
+      const numeric =
+        (f.type === "money" || f.type === "int") &&
+        v !== null &&
+        v !== undefined &&
+        v !== "" &&
+        Number.isFinite(Number(v));
+      out[sec.id][f.key] = numeric ? String(Number(v)) : toText(v);
+    }
   }
   out.payment.onlinePaymentsEnabled =
     data?.payment?.onlinePaymentsEnabled !== false;

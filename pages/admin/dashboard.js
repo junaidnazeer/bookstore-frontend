@@ -269,7 +269,7 @@ export default function AdminDashboard() {
               icon={Package}
               label="Total Products"
               value={products ? products.length : "—"}
-              trend={stats.productsTrend}
+              trend={null}
               trendLabel="new vs previous 30 days"
               hint="Products added in the last 30 days compared with the 30 days before"
               note={products ? null : "Couldn’t load products"}
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
               icon={ShoppingCart}
               label="Total Orders"
               value={orders ? orders.length : "—"}
-              trend={stats.ordersTrend}
+              trend={null}
               trendLabel="new vs previous 30 days"
               hint="Orders placed in the last 30 days compared with the 30 days before"
               note={orders ? null : "Couldn’t load orders"}
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
               icon={Users}
               label="Total Users"
               value={users ? users.length : "—"}
-              trend={stats.usersTrend}
+              trend={null}
               trendLabel="new vs previous 30 days"
               hint="Sign-ups in the last 30 days compared with the 30 days before"
               note={

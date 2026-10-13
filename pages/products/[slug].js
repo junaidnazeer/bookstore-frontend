@@ -5,6 +5,7 @@ import { normalizeProduct } from "../../lib/normalizeProduct";
 import api from "../../lib/api";
 import { useCart } from "../../lib/cart-context";
 import { useWishlist } from "../../lib/wishlist-context";
+import { useShipping } from "../../lib/useShipping";
 import {
   Heart,
   Minus,
@@ -149,13 +150,23 @@ function TrustBadges() {
 }
 
 function DeliveryInfo() {
+  const { loaded, charge, threshold, deliveryEstimate } = useShipping();
+  const fee = !loaded
+    ? ""
+    : charge > 0
+      ? threshold > 0
+        ? `₹${charge} delivery · free above ₹${threshold}`
+        : `₹${charge} delivery`
+      : "Free delivery";
   return (
     <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-white border border-neutral-100">
       <Truck size={20} style={{ color: SPINE }} className="flex-shrink-0" />
       <div>
         <p className="text-sm font-medium text-ink">Delivery Information</p>
         <p className="text-xs text-neutral-500">
-          2-5 working days · Free delivery
+          {[deliveryEstimate || "2-5 working days", fee]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       </div>
     </div>
@@ -485,62 +496,6 @@ export default function ProductDetail() {
         <p className="text-neutral-600 text-sm">{product.description}</p>
 
         <TrustBadges />
-
-        {product.sizes && product.sizes.length > 0 && (
-          <div id="size-section" className="mt-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-ink">
-                Size
-                {selectedSize && (
-                  <span className="text-neutral-500 font-normal">
-                    {" "}
-                    : {selectedSize}
-                  </span>
-                )}
-              </p>
-              {attributes.size_guide && (
-                <button
-                  onClick={() => setShowGuide((v) => !v)}
-                  className="text-sm underline"
-                  style={{ color: SPINE }}
-                >
-                  Size guide
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => {
-                    setSelectedSize(size);
-                    setSizeError(false);
-                  }}
-                  className={`min-w-[48px] h-10 px-3 rounded-lg border text-sm transition-colors ${
-                    selectedSize === size
-                      ? "text-white"
-                      : "border-neutral-300 text-ink hover:border-neutral-500"
-                  }`}
-                  style={
-                    selectedSize === size
-                      ? { backgroundColor: SPINE, borderColor: SPINE }
-                      : {}
-                  }
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-            {sizeError && (
-              <p className="text-sm text-red-600 mt-2">Please select a size</p>
-            )}
-            {showGuide && attributes.size_guide && (
-              <p className="text-sm text-neutral-600 bg-white border border-neutral-200 rounded-lg p-3 mt-3">
-                {attributes.size_guide}
-              </p>
-            )}
-          </div>
-        )}
 
         {sizeList.length > 0 && (
           <div id="size-section" className="mt-5">
