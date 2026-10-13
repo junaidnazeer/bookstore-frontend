@@ -54,15 +54,37 @@ function variantLabel(v) {
 
 function RestockModal({ product, onClose, onSaved }) {
   const { toast } = useAdminUI();
-  const variants = product.variants || [];
-  const hasVariants = variants.length > 0;
+  // The product list doesn't include variants, so they are loaded when this
+  // window opens. null means "still loading".
+  const [variants, setVariants] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [quantity, setQuantity] = useState("");
   const [adds, setAdds] = useState({}); // variant index -> quantity to add
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get(`/admin/products/${product.id}`)
+      .then((res) => {
+        if (!cancelled) setVariants(res.data?.variants || []);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setLoadError(getApiError(err, "Could not load this product."));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [product.id]);
+
+  const loading = variants === null && !loadError;
+  const hasVariants = (variants || []).length > 0;
+
   async function handleSave(e) {
     e.preventDefault();
+    if (loading || loadError) return;
     setError(null);
     let body;
     let total = 0;
@@ -85,10 +107,10 @@ function RestockModal({ product, onClose, onSaved }) {
       body = {
         variants: variants.map((v, i) => {
           const add = Number(adds[i]) > 0 ? Number(adds[i]) : 0;
-          const out = {
-            stock: Number(v.stock) + add,
-            price: Number(v.price ?? product.price),
-          };
+          const out = { stock: Number(v.stock) + add };
+          // A blank price means "use the product price"; keep it that way.
+          if (v.price !== null && v.price !== undefined && v.price !== "")
+            out.price = Number(v.price);
           if (v.size) out.size = v.size;
           if (v.color) out.color = v.color;
           if (v.sku) out.sku = v.sku;
@@ -123,7 +145,10 @@ function RestockModal({ product, onClose, onSaved }) {
           Current stock: {product.stock}
         </p>
 
-        {hasVariants ? (
+        {loading && <p className="text-sm text-neutral-500">Loading…</p>}
+        {loadError && <p className="text-sm text-red-600">{loadError}</p>}
+
+        {!loading && !loadError && hasVariants && (
           <div className="space-y-2">
             <p className="text-xs text-neutral-500">
               Enter how many to add to each variant. Leave blank to skip.
@@ -150,7 +175,9 @@ function RestockModal({ product, onClose, onSaved }) {
             ))}
             {error && <p className="text-xs text-red-600">{error}</p>}
           </div>
-        ) : (
+        )}
+
+        {!loading && !loadError && !hasVariants && (
           <Field label="Quantity to add" htmlFor="restock-qty" error={error}>
             <input
               id="restock-qty"
@@ -169,7 +196,11 @@ function RestockModal({ product, onClose, onSaved }) {
           <button type="button" onClick={onClose} className={btnOutline}>
             Cancel
           </button>
-          <button type="submit" disabled={saving} className={btnPrimary}>
+          <button
+            type="submit"
+            disabled={saving || loading || Boolean(loadError)}
+            className={btnPrimary}
+          >
             {saving ? "Saving…" : "Save stock"}
           </button>
         </div>
