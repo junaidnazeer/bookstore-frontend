@@ -590,7 +590,7 @@ export default function Checkout() {
               <div className="flex justify-between text-neutral-600">
                 <span>Delivery</span>
                 {!loaded ? (
-                  <span>…</span>
+                  <span className="text-neutral-400">Calculating…</span>
                 ) : shipping === 0 ? (
                   <span className="text-green-600 font-medium">Free</span>
                 ) : (
