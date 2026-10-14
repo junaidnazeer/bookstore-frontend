@@ -2,8 +2,24 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Navbar from "../../components/Navbar";
 import api from "../../lib/api";
+import { useShipping } from "../../lib/useShipping";
 
 const STATUS_STEPS = ["PENDING", "PAID", "SHIPPED", "DELIVERED"];
+
+const INDIA_POST_TRACKING =
+  "https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx";
+
+// Builds the courier link from the tracking link set in the admin Settings
+// (it contains {trackingNumber}). Returns null when none is set.
+function trackingLink(template, number) {
+  if (
+    template &&
+    /^https?:\/\//i.test(template) &&
+    template.includes("{trackingNumber}")
+  )
+    return template.split("{trackingNumber}").join(encodeURIComponent(number));
+  return null;
+}
 
 export default function OrderDetail() {
   const router = useRouter();
@@ -11,6 +27,7 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { trackingUrlTemplate, courierName } = useShipping();
 
   useEffect(() => {
     if (!id) return;
@@ -129,23 +146,30 @@ export default function OrderDetail() {
           <div className="border border-neutral-200 rounded-lg p-5">
             <h2 className="font-medium text-ink mb-2">Tracking</h2>
             <p className="text-sm text-neutral-600 mb-3">
-              Tracking Number:{" "}
+              {courierName
+                ? `${courierName} tracking number:`
+                : "Tracking Number:"}{" "}
               <span className="text-ink font-medium">
                 {order.trackingNumber}
               </span>
             </p>
             <a
-              href="https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx"
+              href={
+                trackingLink(trackingUrlTemplate, order.trackingNumber) ||
+                INDIA_POST_TRACKING
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block px-4 py-2 bg-spine text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
             >
               Track Package
             </a>
-            <p className="text-xs text-neutral-400 mt-2">
-              Paste the tracking number above into India Post's site to see live
-              status.
-            </p>
+            {!trackingLink(trackingUrlTemplate, order.trackingNumber) && (
+              <p className="text-xs text-neutral-400 mt-2">
+                Paste the tracking number above into the courier&apos;s site to
+                see live status.
+              </p>
+            )}
           </div>
         )}
       </main>

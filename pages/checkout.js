@@ -185,6 +185,19 @@ export default function Checkout() {
       const { data } = await api.post("/checkout/create-order", {
         items: cartItems,
       });
+      // The server decides the real total (items + delivery). If it differs from
+      // what this page shows, stop before taking any money and say so.
+      const serverTotal = Number(data.total ?? Number(data.amount) / 100);
+      if (
+        Number.isFinite(serverTotal) &&
+        Math.abs(serverTotal - grandTotal) > 0.009
+      ) {
+        setError(
+          `The total is now ₹${serverTotal} because prices or delivery changed. Please review your cart and try again.`,
+        );
+        setLoading(false);
+        return;
+      }
 
       const options = {
         key: data.keyId,
