@@ -16,6 +16,8 @@ const CHROME_FREE_PREFIXES = [
   "/login",
   "/signup",
   "/forgot-password",
+  "/cart",
+  "/checkout",
 ];
 
 // Needs to read sidebar state to shift page content, so it has to live

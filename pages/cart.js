@@ -54,13 +54,14 @@ export default function Cart() {
     );
   }
 
-  // Only computed from real per-item discount data — never fabricated.
-  // If a product has no originalPrice, it contributes nothing here.
-  const totalSavings = items.reduce((sum, item) => {
-    if (!item.originalPrice) return sum;
-    return sum + (item.originalPrice - item.price) * item.quantity;
-  }, 0);
-
+  // List price total (before discounts), from real per-item prices only.
+  const listPrice = (item) =>
+    item.originalPrice > item.price ? item.originalPrice : item.price;
+  const mrpTotal = items.reduce(
+    (sum, item) => sum + listPrice(item) * item.quantity,
+    0,
+  );
+  const totalSavings = Math.round((mrpTotal - total) * 100) / 100;
   return (
     <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
       <CartHeader router={router} />
@@ -146,12 +147,12 @@ export default function Cart() {
         <div className="mt-8 border-t border-neutral-200 pt-4 flex flex-col gap-2">
           <div className="flex items-center justify-between text-sm text-neutral-600">
             <span>Subtotal</span>
-            <span>₹{total}</span>
+            <span>₹{mrpTotal}</span>
           </div>
 
           {totalSavings > 0 && (
             <div className="flex items-center justify-between text-sm text-green-600">
-              <span>You saved</span>
+              <span>Discount</span>
               <span>−₹{totalSavings}</span>
             </div>
           )}

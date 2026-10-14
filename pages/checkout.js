@@ -82,11 +82,14 @@ export default function Checkout() {
     if (checkedAuth) loadAddresses();
   }, [checkedAuth]);
 
-  // Only computed from real per-item discount data — never fabricated.
-  const totalSavings = items.reduce((sum, item) => {
-    if (!item.originalPrice) return sum;
-    return sum + (item.originalPrice - item.price) * item.quantity;
-  }, 0);
+  // List price total (before discounts), from real per-item prices only.
+  const listPrice = (item) =>
+    item.originalPrice > item.price ? item.originalPrice : item.price;
+  const mrpTotal = items.reduce(
+    (sum, item) => sum + listPrice(item) * item.quantity,
+    0,
+  );
+  const totalSavings = Math.round((mrpTotal - total) * 100) / 100;
 
   const cartItems = items.map((i) => ({
     productId: i.id,
@@ -567,7 +570,7 @@ export default function Checkout() {
                     {item.color ? ` - ${item.color}` : ""} × {item.quantity}
                   </span>
                   <span className="text-ink flex-shrink-0">
-                    ₹{item.price * item.quantity}
+                    ₹{listPrice(item) * item.quantity}
                   </span>
                 </div>
               ))}
@@ -576,7 +579,7 @@ export default function Checkout() {
             <div className="mt-4 pt-4 border-t border-neutral-200 flex flex-col gap-2 text-sm">
               <div className="flex justify-between text-neutral-600">
                 <span>Subtotal</span>
-                <span>₹{total}</span>
+                <span>₹{mrpTotal}</span>
               </div>
               {totalSavings > 0 && (
                 <div className="flex justify-between text-green-600">
