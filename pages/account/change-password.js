@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import api from "../../lib/api";
 import { ArrowLeft, Lock, Eye, EyeOff, User } from "lucide-react";
+import { getToken } from "../../lib/auth";
 
 const SPINE = "#1e3d32";
 
@@ -91,9 +92,7 @@ function PasswordField({
 
 export default function ChangePassword() {
   const router = useRouter();
-  const [isLoggedIn] = useState(
-    typeof window !== "undefined" && !!window.localStorage.getItem("token"),
-  );
+  const [isLoggedIn] = useState(typeof window !== "undefined" && !!getToken());
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");

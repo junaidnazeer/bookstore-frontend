@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import api from "../../lib/api";
+import { getToken, clearAuth } from "../../lib/auth";
 import {
   ArrowLeft,
   Bell,
@@ -102,7 +103,7 @@ export default function Settings() {
   const [deleteError, setDeleteError] = useState(null);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("token");
+    const token = getToken();
     setIsLoggedIn(!!token);
     const saved = window.localStorage.getItem(NOTIF_KEY);
     setNotifications(saved === null ? true : saved === "true");
@@ -126,10 +127,7 @@ export default function Settings() {
       // too, but we still clear localStorage and redirect for a clean UX.
       const body = deletePassword ? { currentPassword: deletePassword } : {};
       await api.delete("/auth/me", { data: body });
-      window.localStorage.removeItem("token");
-      window.localStorage.removeItem("role");
-      window.localStorage.removeItem("userName");
-      window.localStorage.removeItem("userEmail");
+      clearAuth();
       window.localStorage.removeItem("savedPaymentMethods");
       window.localStorage.removeItem("savedAddresses");
       router.push("/login");

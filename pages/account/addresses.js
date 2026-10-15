@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import api from "../../lib/api";
+import { getToken } from "../../lib/auth";
 import {
   ArrowLeft,
   MapPin,
@@ -129,7 +130,7 @@ export default function SavedAddresses() {
   }
 
   useEffect(() => {
-    const token = window.localStorage.getItem("token");
+    const token = getToken();
     setIsLoggedIn(!!token);
     setChecked(true);
     if (token) fetchAddresses();

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import api from "../../lib/api";
+import { getToken, setStored, clearAuth } from "../../lib/auth";
 import {
   ArrowLeft,
   Camera,
@@ -89,7 +90,7 @@ export default function AccountDetails() {
   const [payment, setPayment] = useState({ upis: [], cards: [] });
 
   useEffect(() => {
-    const token = window.localStorage.getItem("token");
+    const token = getToken();
     if (!token) {
       setIsLoggedIn(false);
       setChecked(true);
@@ -104,10 +105,7 @@ export default function AccountDetails() {
         // If the account was soft-deleted/anonymized, the token might
         // still technically authenticate — don't render ghost data.
         if (res.data.email?.startsWith("deleted-")) {
-          window.localStorage.removeItem("token");
-          window.localStorage.removeItem("role");
-          window.localStorage.removeItem("userName");
-          window.localStorage.removeItem("userEmail");
+          clearAuth();
           router.push("/login");
           return;
         }
@@ -131,7 +129,7 @@ export default function AccountDetails() {
     try {
       const res = await api.put("/auth/me", { name, phone });
       setUser(res.data);
-      window.localStorage.setItem("userName", res.data.name || "");
+      setStored("userName", res.data.name || "");
       setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 2000);
     } catch (err) {
