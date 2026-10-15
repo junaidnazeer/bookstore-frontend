@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import api from "../../lib/api";
+import { getToken } from "../../lib/auth";
 import { Package, ChevronRight, ArrowLeft } from "lucide-react";
 
 const SPINE = "#1e3d32";
@@ -61,7 +62,7 @@ export default function Orders() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("token");
+    const token = getToken();
     if (!token) {
       router.push("/login");
       return;

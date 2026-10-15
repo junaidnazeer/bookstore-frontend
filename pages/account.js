@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import api from "../lib/api";
 import Link from "next/link";
 import MosqueIcon from "../components/MosqueIcon";
+import { getToken, getStored, setStored, clearAuth } from "../lib/auth";
 import {
   Package,
   Heart,
@@ -113,7 +114,7 @@ export default function Account() {
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("token");
+    const token = getToken();
     if (!token) {
       setIsLoggedIn(false);
       setChecked(true);
@@ -128,8 +129,8 @@ export default function Account() {
       .then((res) => {
         setUserName(res.data.name || "");
         setUserEmail(res.data.email || "");
-        window.localStorage.setItem("userName", res.data.name || "");
-        window.localStorage.setItem("userEmail", res.data.email || "");
+        setStored("userName", res.data.name || "");
+        setStored("userEmail", res.data.email || "");
       })
       .catch(() => {
         // Fall back to whatever's cached if the request fails, rather than
@@ -141,10 +142,7 @@ export default function Account() {
   }, []);
 
   function handleLogoutConfirmed() {
-    window.localStorage.removeItem("token");
-    window.localStorage.removeItem("role");
-    window.localStorage.removeItem("userName");
-    window.localStorage.removeItem("userEmail");
+    clearAuth();
     setConfirmLogout(false);
     router.push("/login");
   }

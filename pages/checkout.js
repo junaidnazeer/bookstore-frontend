@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useCart } from "../lib/cart-context";
 import api from "../lib/api";
 import { MapPin, Plus, Pencil, ArrowLeft } from "lucide-react";
+import { getToken } from "../lib/auth";
 import { useShipping } from "../lib/useShipping";
 
 const EMPTY_FORM = {
@@ -50,7 +51,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("token");
+    const token = getToken();
     if (!token) {
       router.replace("/login?redirect=" + encodeURIComponent("/checkout"));
       return;

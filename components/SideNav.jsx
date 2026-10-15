@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { getToken, clearAuth } from "../lib/auth";
 import {
   Home,
   Grid,
@@ -55,7 +56,7 @@ export default function SideNav() {
   // every time the drawer opens, after every navigation, and whenever another
   // tab logs in or out.
   useEffect(() => {
-    const sync = () => setIsLoggedIn(!!window.localStorage.getItem("token"));
+    const sync = () => setIsLoggedIn(!!getToken());
     sync();
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
@@ -132,10 +133,7 @@ export default function SideNav() {
 
   // Same session cleanup and redirect the Account page already uses.
   function handleLogout() {
-    window.localStorage.removeItem("token");
-    window.localStorage.removeItem("role");
-    window.localStorage.removeItem("userName");
-    window.localStorage.removeItem("userEmail");
+    clearAuth();
     setIsLoggedIn(false);
     close();
     router.push("/login");

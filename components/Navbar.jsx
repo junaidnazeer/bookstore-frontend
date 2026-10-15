@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "../lib/cart-context";
 import { useWishlist } from "../lib/wishlist-context";
 import { useSidebar } from "../lib/sidebar-context";
+import { getToken, clearAuth } from "../lib/auth";
 import { Search, ShoppingCart, User, Heart, Menu } from "lucide-react";
 
 const SPINE = "#1e3d32";
@@ -18,7 +19,7 @@ export default function Navbar() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    setIsLoggedIn(!!window.localStorage.getItem("token"));
+    setIsLoggedIn(!!getToken());
   }, [router.pathname]);
 
   // Tell SidebarToggleButton a real, in-header hamburger already exists on
@@ -30,7 +31,7 @@ export default function Navbar() {
   }, [setHasInlineTrigger]);
 
   function handleLogout() {
-    window.localStorage.removeItem("token");
+    clearAuth();
     setIsLoggedIn(false);
     router.push("/");
   }
