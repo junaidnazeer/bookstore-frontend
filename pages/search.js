@@ -13,7 +13,6 @@ import {
   X,
   ChevronDown,
   Search as SearchIcon,
-  SlidersHorizontal,
   ShoppingCart,
 } from "lucide-react";
 
@@ -334,18 +333,12 @@ export default function SearchPage() {
             <SearchIcon size={18} className="text-neutral-400 flex-shrink-0" />
             <input
               type="text"
+              enterKeyHint="search"
               placeholder="Search books, attars, clothing..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               className="flex-1 min-w-0 text-sm outline-none bg-transparent"
             />
-            <button
-              type="submit"
-              className="text-neutral-400 flex-shrink-0 p-1"
-              aria-label="Search"
-            >
-              <SlidersHorizontal size={16} />
-            </button>
           </div>
         </form>
       </header>
@@ -523,7 +516,7 @@ export default function SearchPage() {
             {status === "success" && results.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-neutral-500 mb-1">
-                  No products found for "{submittedTerm}".
+                  No products found for &quot;{submittedTerm}&quot;.
                 </p>
                 <p className="text-neutral-400 text-sm">
                   Try a different search term or clear your filters.

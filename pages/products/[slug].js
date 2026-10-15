@@ -61,14 +61,7 @@ function DetailHeader({ router, title, categorySlug, cartCount }) {
         <Link href="/search" aria-label="Search">
           <SearchIcon size={20} />
         </Link>
-        {categorySlug && (
-          <Link
-            href={`/products?category=${categorySlug}`}
-            aria-label="Browse this category"
-          >
-            <SlidersHorizontal size={18} />
-          </Link>
-        )}
+
         <Link href="/cart" aria-label="Cart" className="relative">
           <ShoppingCart size={20} />
           {cartCount > 0 && (
