@@ -20,6 +20,11 @@ const CHROME_FREE_PREFIXES = [
   "/checkout",
 ];
 
+// Focused pages (like Amazon's order screens): no sidebar, no menu button and
+// no bottom tab bar. Each page has its own back arrow.
+// Matched against router.pathname, so dynamic routes use their file pattern.
+const FOCUSED_ROUTES = ["/orders", "/order-confirmation", "/orders/[id]"];
+
 // Needs to read sidebar state to shift page content, so it has to live
 // inside SidebarProvider rather than alongside it.
 function AppShell({ Component, pageProps }) {
@@ -28,14 +33,16 @@ function AppShell({ Component, pageProps }) {
   const chromeFree = CHROME_FREE_PREFIXES.some((p) =>
     router.pathname.startsWith(p),
   );
+  const focused = FOCUSED_ROUTES.includes(router.pathname);
+  const noChrome = chromeFree || focused;
 
   // "admin-route" also removes the extra bottom padding that the mobile tab
   // bar needs, so no empty gap is left on these pages.
   useEffect(() => {
-    document.body.classList.toggle("admin-route", chromeFree);
-  }, [chromeFree]);
+    document.body.classList.toggle("admin-route", noChrome);
+  }, [noChrome]);
 
-  if (chromeFree) return <Component {...pageProps} />;
+  if (noChrome) return <Component {...pageProps} />;
 
   return (
     <>

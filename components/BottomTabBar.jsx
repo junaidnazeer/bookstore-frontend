@@ -28,6 +28,7 @@ export default function BottomTabBar() {
         const active =
           tab.href === "/account"
             ? router.pathname.startsWith("/account") ||
+              router.pathname.startsWith("/orders") ||
               router.pathname === "/help"
             : router.pathname === tab.href.split("?")[0];
         return (
