@@ -5,14 +5,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "../lib/cart-context";
 import { useWishlist } from "../lib/wishlist-context";
 import { useSidebar } from "../lib/sidebar-context";
-import {
-  Search,
-  ShoppingCart,
-  User,
-  SlidersHorizontal,
-  Heart,
-  Menu,
-} from "lucide-react";
+import { Search, ShoppingCart, User, Heart, Menu } from "lucide-react";
 
 const SPINE = "#1e3d32";
 
@@ -132,18 +125,12 @@ export default function Navbar() {
             <Search size={18} className="text-neutral-400 flex-shrink-0" />
             <input
               type="text"
+              enterKeyHint="search"
               placeholder="Search books, attars, clothing..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 min-w-0 text-sm outline-none bg-transparent"
             />
-            <button
-              type="submit"
-              className="text-neutral-400 flex-shrink-0 p-1"
-              aria-label="Search filters"
-            >
-              <SlidersHorizontal size={16} />
-            </button>
           </div>
         </form>
       </div>

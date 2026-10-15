@@ -259,39 +259,41 @@ export default function OrderDetail() {
             </div>
           )}
 
-          {order.trackingNumber && !cancelled && (
-            <div className="mt-5 pt-4 border-t border-neutral-100">
-              <p className="text-xs text-neutral-500">
-                {courierName
-                  ? `${courierName} tracking number`
-                  : "Tracking number"}
-              </p>
-              <p className="font-medium text-ink break-all">
-                {order.trackingNumber}
-                <button
-                  type="button"
-                  onClick={() => copyTrackingNumber(order.trackingNumber)}
-                  className="ml-3 text-xs font-normal text-spine underline"
-                >
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </p>
-              <a
-                href={link || INDIA_POST_TRACKING}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-spine text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-              >
-                <Truck size={16} /> Track package
-              </a>
-              {!link && (
-                <p className="text-xs text-neutral-400 mt-2">
-                  Copy the tracking number above, open the courier&apos;s site,
-                  and look for &quot;Track N Trace&quot; to see live status.
+          {order.trackingNumber &&
+            (order.status === "SHIPPED" || order.status === "DELIVERED") && (
+              <div className="mt-5 pt-4 border-t border-neutral-100">
+                <p className="text-xs text-neutral-500">
+                  {courierName
+                    ? `${courierName} tracking number`
+                    : "Tracking number"}
                 </p>
-              )}
-            </div>
-          )}
+                <p className="font-medium text-ink break-all">
+                  {order.trackingNumber}
+                  <button
+                    type="button"
+                    onClick={() => copyTrackingNumber(order.trackingNumber)}
+                    className="ml-3 text-xs font-normal text-spine underline"
+                  >
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </p>
+                <a
+                  href={link || INDIA_POST_TRACKING}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-spine text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  <Truck size={16} /> Track package
+                </a>
+                {!link && (
+                  <p className="text-xs text-neutral-400 mt-2">
+                    Copy the tracking number above, open the courier&apos;s
+                    site, and look for &quot;Track N Trace&quot; to see live
+                    status.
+                  </p>
+                )}
+              </div>
+            )}
         </Card>
 
         {/* Items */}
