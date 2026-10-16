@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
 import api from "../lib/api";
 
@@ -30,8 +30,6 @@ function GoogleIcon({ size = 18 }) {
   );
 }
 
-const REMEMBER_KEY = "rememberMe";
-
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -50,7 +48,12 @@ export default function Login() {
 
       // Remembered → localStorage (survives closing the browser). Not
       // remembered → sessionStorage (cleared when the tab/browser closes).
+      // The other storage is cleared so an old token can't override this one.
       const storage = rememberMe ? window.localStorage : window.sessionStorage;
+      const other = rememberMe ? window.sessionStorage : window.localStorage;
+      ["token", "role", "userName", "userEmail"].forEach((k) =>
+        other.removeItem(k),
+      );
       storage.setItem("token", res.data.token);
       storage.setItem("role", res.data.user?.role || "CUSTOMER");
       storage.setItem("userName", res.data.user?.name || "");
@@ -59,9 +62,13 @@ export default function Login() {
       if (res.data.user?.role === "ADMIN") {
         router.push("/admin/products");
       } else {
+        const wanted = router.query.redirect;
+        // Only allow paths on this site (starts with a single "/").
         const redirectTo =
-          typeof router.query.redirect === "string"
-            ? router.query.redirect
+          typeof wanted === "string" &&
+          wanted.startsWith("/") &&
+          !wanted.startsWith("//")
+            ? wanted
             : "/";
         router.push(redirectTo);
       }
@@ -179,7 +186,7 @@ export default function Login() {
       </button>
 
       <p className="mt-6 text-sm text-neutral-500 text-center">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <a href="/signup" className="underline" style={{ color: SPINE }}>
           Sign Up
         </a>
