@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { getToken } from "../../lib/auth";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -75,7 +76,7 @@ export default function PaymentMethods() {
   const [cardError, setCardError] = useState(null);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("token");
+    const token = getToken();
     setIsLoggedIn(!!token);
     if (token) setPayments(loadPaymentMethods());
     setChecked(true);
