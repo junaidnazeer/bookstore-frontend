@@ -11,6 +11,8 @@ import { Field, Modal, btnOutline, btnPrimary, inputCls } from "./ui";
 
 // Updates an order's status through PUT /admin/orders/:id. Marking an order as
 // shipped requires an India Post tracking number (same rule as the old page).
+// A tracking number can also be cleared: an empty value is sent as "" and the
+// backend treats it as "no tracking number".
 export default function OrderStatusModal({ order, onClose, onSaved }) {
   const [status, setStatus] = useState(order.status || "PENDING");
   const [tracking, setTracking] = useState(order.trackingNumber || "");
@@ -20,10 +22,12 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
   // The backend refuses to move an order out of CANCELLED (its items already went
   // back into stock), so the panel doesn't offer it.
   const locked = order.status === "CANCELLED";
-  const showTracking =
-    !locked && (status === "SHIPPED" || status === "DELIVERED");
-  const trackingChanged =
-    showTracking && tracking.trim() !== (order.trackingNumber || "");
+  const currentTracking = order.trackingNumber || "";
+  const orderShipped = status === "SHIPPED" || status === "DELIVERED";
+  // Show the field when the order is shipped/delivered, and also whenever the
+  // order already has a number, so a wrong or test number can be cleared.
+  const showTracking = !locked && (orderShipped || Boolean(currentTracking));
+  const trackingChanged = showTracking && tracking.trim() !== currentTracking;
   const changed = status !== order.status || trackingChanged;
 
   async function handleSave(e) {
@@ -37,23 +41,22 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
     // Send only what changed.
     const body = {};
     if (status !== order.status) body.status = status;
-    const newTracking = tracking.trim();
-    if (
-      showTracking &&
-      newTracking &&
-      newTracking !== (order.trackingNumber || "")
-    )
-      body.trackingNumber = newTracking;
+    if (trackingChanged) body.trackingNumber = tracking.trim(); // "" clears it
     try {
       await api.put(`/admin/orders/${order.id}`, body);
+      const clearedOnly = !body.status && body.trackingNumber === "";
       toast(
         body.status
           ? `Order #${orderRef(order)} is now ${ORDER_STATUS_META[status]?.label || status}.`
-          : `Tracking number updated for order #${orderRef(order)}.`,
+          : clearedOnly
+            ? `Tracking number cleared for order #${orderRef(order)}.`
+            : `Tracking number updated for order #${orderRef(order)}.`,
       );
       onSaved({
         ...(body.status ? { status } : {}),
-        ...(body.trackingNumber ? { trackingNumber: body.trackingNumber } : {}),
+        ...("trackingNumber" in body
+          ? { trackingNumber: body.trackingNumber || null }
+          : {}),
       });
     } catch (err) {
       setError(getApiError(err, "Could not update the order."));
@@ -96,7 +99,11 @@ export default function OrderStatusModal({ order, onClose, onSaved }) {
               status === "SHIPPED" ? "Tracking number *" : "Tracking number"
             }
             htmlFor="order-tracking"
-            hint="India Post tracking number. Customers see it on their order page."
+            hint={
+              orderShipped
+                ? "India Post tracking number. Customers see it on their order page. Clear the field and save to remove it."
+                : "This order hasn’t shipped. Clear the field and save to remove a number that was added by mistake."
+            }
           >
             <input
               id="order-tracking"
