@@ -180,21 +180,20 @@ export default function AccountDetails() {
         >
           <div className="flex flex-col items-center mb-4">
             <div
-              className="w-20 h-20 rounded-full flex items-center justify-center mb-2 relative"
+              className="w-20 h-20 rounded-full flex items-center justify-center"
               style={{ backgroundColor: "rgba(30,61,50,0.08)" }}
             >
-              <UserIcon size={32} style={{ color: SPINE }} />
-              <button
-                type="button"
-                aria-label="Change photo"
-                title="Photo upload isn't available yet"
-                className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white"
-                style={{ backgroundColor: SPINE }}
-              >
-                <Camera size={13} className="text-white" />
-              </button>
+              {name && name.trim() ? (
+                <span
+                  className="font-serif text-3xl font-semibold"
+                  style={{ color: SPINE }}
+                >
+                  {name.trim()[0].toUpperCase()}
+                </span>
+              ) : (
+                <UserIcon size={32} style={{ color: SPINE }} />
+              )}
             </div>
-            <p className="text-xs text-neutral-400">Change Photo</p>
           </div>
 
           <div className="mb-3">
