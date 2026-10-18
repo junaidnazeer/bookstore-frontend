@@ -6,11 +6,22 @@ import { useShipping } from "../lib/useShipping";
 
 const SPINE = "#1e3d32";
 
+// Money from the server can carry tiny floating-point errors (e.g. 299.99999).
+const money = (n) => Math.round(n * 100) / 100;
+
 function CartHeader({ router }) {
+  function goBack() {
+    // A cart opened straight from a link has no page to go back to.
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.replace("/products");
+    }
+  }
   return (
     <header className="flex items-center gap-3 px-4 py-4 max-w-3xl mx-auto">
       <button
-        onClick={() => router.back()}
+        onClick={goBack}
         aria-label="Go back"
         className="flex-shrink-0"
         style={{ color: SPINE }}
@@ -24,23 +35,51 @@ function CartHeader({ router }) {
   );
 }
 
+// Shown when the saved cart was changed because of stock (items removed or
+// quantities reduced).
+function CartNotice({ notice, onDismiss }) {
+  if (!notice) return null;
+  return (
+    <div
+      role="status"
+      className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+    >
+      <span>{notice}</span>
+      <button onClick={onDismiss} className="font-medium underline">
+        OK
+      </button>
+    </div>
+  );
+}
+
 export default function Cart() {
   const router = useRouter();
-  const { items, removeItem, updateQuantity, total, keyOf } = useCart();
+  const {
+    items,
+    removeItem,
+    updateQuantity,
+    total,
+    keyOf,
+    notice,
+    dismissNotice,
+  } = useCart();
   const { loaded, shippingFor, threshold } = useShipping();
   const shipping = shippingFor(total);
-  const grandTotal = total + shipping;
+  const grandTotal = money(total + shipping);
 
   if (items.length === 0) {
     return (
       <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
         <CartHeader router={router} />
         <main className="max-w-3xl mx-auto px-6 py-16 text-center">
+          <div className="text-left">
+            <CartNotice notice={notice} onDismiss={dismissNotice} />
+          </div>
           <h1 className="font-serif text-2xl text-ink mb-3">
             Your cart is empty
           </h1>
           <p className="text-neutral-500 mb-6">
-            Looks like you haven't added anything yet.
+            Looks like you haven&apos;t added anything yet.
           </p>
           <Link
             href="/products"
@@ -57,15 +96,15 @@ export default function Cart() {
   // List price total (before discounts), from real per-item prices only.
   const listPrice = (item) =>
     item.originalPrice > item.price ? item.originalPrice : item.price;
-  const mrpTotal = items.reduce(
-    (sum, item) => sum + listPrice(item) * item.quantity,
-    0,
+  const mrpTotal = money(
+    items.reduce((sum, item) => sum + listPrice(item) * item.quantity, 0),
   );
-  const totalSavings = Math.round((mrpTotal - total) * 100) / 100;
+  const totalSavings = money(mrpTotal - total);
   return (
     <div style={{ backgroundColor: "#F3ECDD" }} className="min-h-screen">
       <CartHeader router={router} />
       <main className="max-w-3xl mx-auto px-4 pb-10">
+        <CartNotice notice={notice} onDismiss={dismissNotice} />
         <div className="flex flex-col gap-4">
           {items.map((item) => (
             <div
@@ -99,7 +138,7 @@ export default function Cart() {
                     <p className="font-semibold" style={{ color: SPINE }}>
                       ₹{item.price}
                     </p>
-                    {item.originalPrice && (
+                    {item.originalPrice > item.price && (
                       <p className="text-xs text-neutral-400 line-through">
                         ₹{item.originalPrice}
                       </p>
@@ -169,7 +208,7 @@ export default function Cart() {
           </div>
           {loaded && shipping > 0 && threshold > 0 && (
             <p className="text-xs text-neutral-500">
-              Add ₹{threshold - total} more for free delivery.
+              Add ₹{money(threshold - total)} more for free delivery.
             </p>
           )}
 
