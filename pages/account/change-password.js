@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import api from "../../lib/api";
 import { ArrowLeft, Lock, Eye, EyeOff, User } from "lucide-react";
-import { getToken } from "../../lib/auth";
+import { getToken, clearAuth } from "../../lib/auth";
 
 const SPINE = "#1e3d32";
 
@@ -150,10 +150,11 @@ export default function ChangePassword() {
     setLoading(true);
     try {
       await api.put("/auth/me", { currentPassword, newPassword });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setSuccess(true);
+      // The server has now cancelled every saved login for this account,
+      // including this one, so sign out here and ask for the new password.
+      clearAuth();
+      router.replace("/login?passwordChanged=1");
+      return;
     } catch (err) {
       setError(extractErrorMessage(err, "Could not change your password."));
     } finally {

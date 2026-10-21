@@ -95,6 +95,14 @@ export default function Login() {
         Log in to your Maktabah Islamiyah account
         <br className="hidden sm:block" /> and continue your journey.
       </p>
+      {router.query.passwordChanged === "1" && (
+        <p
+          role="status"
+          className="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-center text-sm text-green-800"
+        >
+          Your password was changed. Please log in with your new password.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
