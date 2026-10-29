@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import HeroSlideshow from "../components/HeroSlideshow";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Navbar from "../components/Navbar";
@@ -207,56 +208,8 @@ export default function Home() {
     <div className="relative" style={{ backgroundColor: "#F3ECDD" }}>
       <IslamicPatternBackground />
       <Navbar />
-
       {/* Hero */}
-      <section
-        className="relative h-[360px] md:h-[420px] bg-cover rounded-2xl overflow-hidden mx-4 mt-4 max-w-7xl md:mx-auto md:w-[calc(100%_-_2rem)]"
-        style={{
-          backgroundImage:
-            "url('https://images.pexels.com/photos/37697015/pexels-photo-37697015.jpeg')",
-          backgroundPosition: "center 30%",
-        }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{ backgroundColor: "rgba(243,236,221,0.5)" }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to right, #F3ECDD, rgba(243,236,221,0.7), transparent)",
-          }}
-        />
-        <div className="relative max-w-6xl mx-auto px-6 h-full flex items-center">
-          <div className="max-w-md">
-            <p className="text-xs uppercase tracking-wide text-neutral-500 mb-2">
-              Authentic Islamic Essentials
-            </p>
-            <h1 className="font-serif text-3xl md:text-4xl text-ink leading-tight mb-4">
-              Discover Knowledge. Live the Sunnah.
-            </h1>
-            <p className="text-neutral-600 mb-6">
-              Authentic books, attars, modest clothing and more — carefully
-              selected for you.
-            </p>
-            <div className="flex gap-3">
-              <Link
-                href="/products?category=books"
-                className="px-5 py-2 bg-spine text-white rounded hover:opacity-90 transition-opacity"
-              >
-                Shop Now →
-              </Link>
-              <Link
-                href="/products"
-                className="px-5 py-2 border border-spine text-spine rounded bg-white/70 hover:bg-spine hover:text-white transition-colors"
-              >
-                Explore All
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSlideshow />
 
       {/* Shop by category - always 2 columns, exact row pairing via array order */}
       <section className="max-w-6xl mx-auto px-4 py-8">
