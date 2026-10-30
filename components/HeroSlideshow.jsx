@@ -3,11 +3,22 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import MosqueIcon from "./MosqueIcon";
 
-const INTERVAL_MS = 5000;
+// How long each slide stays before the next one starts (milliseconds).
+const INTERVAL_MS = 2000;
 const SWIPE_PX = 40;
+// Change this number whenever you replace a picture in public/images/hero/,
+// so browsers fetch the new file instead of showing an old saved copy.
+const IMG_VERSION = "3";
+// How many times a picture that fails to load is tried before the plain panel
+// is shown instead.
+const MAX_TRIES = 3;
 
-// One slide per category, in this order. `pd` / `pm` choose which part of the
-// photo stays in view on desktop / mobile (CSS object-position).
+// One slide per category, in this order.
+// `w` / `h` are the real pixel size of each photo (lets the browser reserve the
+// right space, so phones show the FULL photo without the page jumping).
+// Phones: the FULL photo sits on top, nothing cropped.
+// Laptops (768px and wider): the photo fills the right side of the banner;
+// `pd` chooses which part stays in view (CSS object-position).
 const SLIDES = [
   {
     slug: "books",
@@ -15,7 +26,8 @@ const SLIDES = [
     text: "Timeless knowledge for a better hereafter. Explore our collection of Qur’an, hadith and Islamic literature.",
     image: "/images/hero/books.jpg",
     pd: "50% 70%",
-    pm: "50% 80%",
+    w: 1000,
+    h: 901,
   },
   {
     slug: "attars",
@@ -23,7 +35,8 @@ const SLIDES = [
     text: "Pure, natural and traditional attars for a refreshing experience.",
     image: "/images/hero/attars.jpg",
     pd: "50% 50%",
-    pm: "50% 45%",
+    w: 1025,
+    h: 901,
   },
   {
     slug: "caps",
@@ -31,7 +44,8 @@ const SLIDES = [
     text: "Comfortable and stylish caps for everyday wear and prayer.",
     image: "/images/hero/caps.jpg",
     pd: "50% 60%",
-    pm: "50% 85%",
+    w: 1070,
+    h: 902,
   },
   {
     slug: "shalwar-kameez",
@@ -39,7 +53,8 @@ const SLIDES = [
     text: "Traditional wear for men, combining comfort, modesty and timeless style.",
     image: "/images/hero/shalwar-kameez.jpg",
     pd: "50% 30%",
-    pm: "50% 20%",
+    w: 865,
+    h: 901,
   },
   {
     slug: "abayas",
@@ -47,7 +62,8 @@ const SLIDES = [
     text: "Elegant and modest abayas for every occasion.",
     image: "/images/hero/abayas.jpg",
     pd: "50% 8%",
-    pm: "50% 5%",
+    w: 985,
+    h: 902,
   },
   {
     slug: "jilbabs",
@@ -55,7 +71,8 @@ const SLIDES = [
     text: "Graceful, modest and comfortable jilbabs for your daily life and worship.",
     image: "/images/hero/jilbabs.jpg",
     pd: "50% 8%",
-    pm: "50% 5%",
+    w: 1040,
+    h: 902,
   },
   {
     slug: "prayer-quran-accessories",
@@ -63,7 +80,8 @@ const SLIDES = [
     text: "Complete your spiritual journey with quality prayer mats, Qur’an rehal and more.",
     image: "/images/hero/prayer-quran-accessories.jpg",
     pd: "50% 60%",
-    pm: "50% 70%",
+    w: 848,
+    h: 902,
   },
 ];
 
@@ -73,8 +91,12 @@ export default function HeroSlideshow() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [missing, setMissing] = useState({}); // slides whose image file isn't there
+  const [fails, setFails] = useState({}); // slug -> number of failed loads
   const touch = useRef(null);
+  const imgRefs = useRef({});
+
+  const bumpFail = (slug) =>
+    setFails((f) => ({ ...f, [slug]: (f[slug] || 0) + 1 }));
 
   const go = (i) => setIndex(((i % COUNT) + COUNT) % COUNT);
   const next = () => go(index + 1);
@@ -89,8 +111,17 @@ export default function HeroSlideshow() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
+  // A picture can fail before the page is ready to notice (slow or dropped
+  // connection). Check once after loading and retry those.
+  useEffect(() => {
+    SLIDES.forEach((s) => {
+      const el = imgRefs.current[s.slug];
+      if (el && el.complete && el.naturalWidth === 0) bumpFail(s.slug);
+    });
+  }, []);
+
   // Auto-advance. The timer restarts after every change (manual or automatic),
-  // so each slide gets its full 5 seconds, and it stops while paused.
+  // so each slide gets its full time (INTERVAL_MS), and it stops while paused.
   useEffect(() => {
     if (paused || reduced) return;
     const t = setTimeout(() => setIndex((i) => (i + 1) % COUNT), INTERVAL_MS);
@@ -125,9 +156,13 @@ export default function HeroSlideshow() {
       aria-roledescription="carousel"
       aria-label="Shop by category highlights"
       className="relative rounded-2xl overflow-hidden mx-4 mt-4 max-w-7xl md:mx-auto md:w-[calc(100%_-_2rem)] bg-[#F3ECDD] border border-[#e6dcc4]"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
+      // Only a real mouse hover or keyboard focus pauses the slideshow.
+      // Taps on a phone must not (they would stop autoplay for good).
+      onPointerEnter={(e) => e.pointerType === "mouse" && setPaused(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setPaused(false)}
+      onFocusCapture={(e) =>
+        e.target.matches(":focus-visible") && setPaused(true)
+      }
       onBlurCapture={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) setPaused(false);
       }}
@@ -148,10 +183,10 @@ export default function HeroSlideshow() {
       <div className="grid">
         {SLIDES.map((s, i) => {
           const active = i === index;
-          const distance = (i - index + COUNT) % COUNT;
-          // Only the current slide and its neighbours load an image.
-          const loadImage = distance <= 1 || distance === COUNT - 1;
-          const hasImage = loadImage && !missing[s.slug];
+          const tries = fails[s.slug] || 0;
+          const hasImage = tries < MAX_TRIES;
+          // Each retry asks for the file again with a different address.
+          const src = `${s.image}?v=${IMG_VERSION}${tries ? `&r=${tries}` : ""}`;
           return (
             <div
               key={s.slug}
@@ -159,34 +194,42 @@ export default function HeroSlideshow() {
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${COUNT}`}
               aria-hidden={!active}
-              className={`[grid-area:1/1] flex flex-col md:block md:relative md:h-[420px] lg:h-[460px] transition-opacity duration-500 motion-reduce:transition-none ${
+              // duration-1000 = the slide change (fade) takes 1 second.
+              // Raise it for a slower, softer change; lower it for a quicker one.
+              className={`[grid-area:1/1] flex flex-col md:block md:relative md:h-[420px] lg:h-[460px] transition-[opacity,visibility] duration-1000 motion-reduce:transition-none ${
                 active ? "opacity-100" : "opacity-0 invisible"
               }`}
             >
-              {/* Photo: on top on phones, on the right on laptops */}
-              <div className="relative h-[200px] sm:h-[250px] md:absolute md:inset-y-0 md:right-0 md:h-auto md:w-[62%] overflow-hidden bg-[#e9dfc8]">
+              {/* Photo: full photo on top on phones, fills the right side on laptops */}
+              <div
+                className="relative mx-auto w-full max-w-[460px] sm:max-w-[520px] overflow-hidden bg-[#e9dfc8] aspect-[var(--ar)] md:absolute md:inset-y-0 md:right-0 md:mx-0 md:h-full md:w-[62%] md:max-w-none md:aspect-auto"
+                style={{ "--ar": `${s.w} / ${s.h}` }}
+              >
                 {hasImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={s.image}
+                    key={src}
+                    ref={(el) => {
+                      imgRefs.current[s.slug] = el;
+                    }}
+                    src={src}
+                    width={s.w}
+                    height={s.h}
                     alt={s.title}
                     draggable={false}
                     decoding="async"
-                    loading={i === 0 ? "eager" : "lazy"}
-                    onError={() =>
-                      setMissing((m) => ({ ...m, [s.slug]: true }))
-                    }
-                    style={{ "--pm": s.pm, "--pd": s.pd }}
-                    className="absolute inset-0 h-full w-full object-cover object-[var(--pm)] md:object-[var(--pd)] select-none"
+                    loading="eager"
+                    onError={() => setTimeout(() => bumpFail(s.slug), 1200)}
+                    style={{ "--pd": s.pd }}
+                    className="block h-full w-full select-none object-cover md:object-[var(--pd)]"
                   />
                 ) : (
-                  <div className="absolute inset-0 grid place-items-center bg-gradient-to-br from-[#efe6d0] to-[#e1d5b8]">
+                  <div className="grid h-full w-full place-items-center bg-gradient-to-br from-[#efe6d0] to-[#e1d5b8]">
                     <MosqueIcon size={88} className="text-spine/20" />
                   </div>
                 )}
-                {/* soft edge into the cream background */}
-                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#F3ECDD] to-transparent md:hidden" />
-                <div className="hidden md:block absolute inset-y-0 left-0 w-2/5 bg-gradient-to-r from-[#F3ECDD] via-[#F3ECDD]/55 to-transparent" />
+                {/* soft edge into the cream background (laptop only) */}
+                <div className="absolute inset-y-0 left-0 hidden w-2/5 bg-gradient-to-r from-[#F3ECDD] via-[#F3ECDD]/55 to-transparent md:block" />
               </div>
 
               {/* Text */}
@@ -197,7 +240,7 @@ export default function HeroSlideshow() {
                 <h2 className="font-serif font-semibold text-[26px] leading-tight sm:text-3xl md:text-4xl lg:text-[44px] lg:leading-[1.1] text-spine mb-2 md:mb-4">
                   {s.title}
                 </h2>
-                <p className="text-sm md:text-base text-neutral-600 leading-relaxed max-w-md mb-4 md:mb-6 line-clamp-3">
+                <p className="text-sm md:text-base text-neutral-600 leading-relaxed max-w-md mb-4 md:mb-6 md:line-clamp-3">
                   {s.text}
                 </p>
                 <div className="flex flex-wrap gap-2.5">
@@ -227,7 +270,7 @@ export default function HeroSlideshow() {
         type="button"
         onClick={prev}
         aria-label="Previous slide"
-        className="absolute left-2 top-[100px] sm:top-[125px] md:top-1/2 -translate-y-1/2 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/85 text-spine shadow hover:bg-white"
+        className="absolute left-2 top-40 sm:top-60 md:top-1/2 -translate-y-1/2 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/85 text-spine shadow hover:bg-white"
       >
         <ChevronLeft size={20} />
       </button>
@@ -235,7 +278,7 @@ export default function HeroSlideshow() {
         type="button"
         onClick={next}
         aria-label="Next slide"
-        className="absolute right-2 top-[100px] sm:top-[125px] md:top-1/2 -translate-y-1/2 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/85 text-spine shadow hover:bg-white"
+        className="absolute right-2 top-40 sm:top-60 md:top-1/2 -translate-y-1/2 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/85 text-spine shadow hover:bg-white"
       >
         <ChevronRight size={20} />
       </button>
